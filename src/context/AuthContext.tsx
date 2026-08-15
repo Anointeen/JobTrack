@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserSession, UserProfile } from '../types';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, isDemoMode } from '../lib/supabase';
 import { dataService } from '../lib/dataService';
 
 interface AuthContextType {
@@ -21,6 +21,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const LOCAL_USER_KEY = 'jobtrack_demo_user';
 const LOCAL_USERS_DB_KEY = 'jobtrack_users_db';
+
+/**
+ * Guards the localStorage authentication paths below.
+ *
+ * Demo auth stores passwords in plaintext and auto-creates an account for any
+ * unrecognised email. It previously activated whenever Supabase happened to be
+ * unconfigured, which meant a deployment with missing environment variables
+ * would silently serve insecure authentication. It is now development-only.
+ */
+const assertDemoAuth = (): void => {
+  if (!isDemoMode) {
+    throw new Error(
+      'Authentication is unavailable: Supabase is not configured, and the local demo ' +
+        'login is restricted to development builds.'
+    );
+  }
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserSession | null>(null);
@@ -66,8 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => {
           authListener.subscription.unsubscribe();
         };
-      } else {
-        // Local Demo Auth Persistence
+      } else if (isDemoMode) {
+        // Local Demo Auth Persistence (development only)
         const savedUserStr = localStorage.getItem(LOCAL_USER_KEY);
         if (savedUserStr) {
           try {
@@ -78,6 +95,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.removeItem(LOCAL_USER_KEY);
           }
         }
+        setLoading(false);
+      } else {
         setLoading(false);
       }
     };
@@ -110,20 +129,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
       if (error) throw new Error(error.message);
-      if (data.user) {
-        const uSession: UserSession = { id: data.user.id, email: data.user.email || '' };
+
+      // The handle_new_user() trigger already created the profile and default
+      // notification preferences server-side. No client-side insert is
+      // attempted: that insert cannot succeed when the project requires email
+      // confirmation, because no session exists yet for RLS to authorise.
+      if (data.session?.user) {
+        const uSession: UserSession = {
+          id: data.session.user.id,
+          email: data.session.user.email || '',
+          email_verified: Boolean(data.session.user.email_confirmed_at)
+        };
         setUser(uSession);
-        const newProf = await dataService.updateProfile(data.user.id, {
-          full_name: fullName,
-          onboarding_completed: false
-        });
-        setProfile(newProf);
-        setNeedsOnboarding(true);
+        await loadUserProfile(uSession.id);
+        return;
       }
-      return;
+
+      // No session means the Supabase project requires email confirmation.
+      throw new Error(
+        'Account created. Please check your email to confirm your address, then log in.'
+      );
     }
 
-    // Local Demo SignUp
+    // Local Demo SignUp (development only)
+    assertDemoAuth();
     const usersDbStr = localStorage.getItem(LOCAL_USERS_DB_KEY);
     const usersDb = usersDbStr ? JSON.parse(usersDbStr) : {};
     
@@ -159,7 +188,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // Local Demo Login
+    // Local Demo Login (development only)
+    assertDemoAuth();
     const usersDbStr = localStorage.getItem(LOCAL_USERS_DB_KEY);
     const usersDb = usersDbStr ? JSON.parse(usersDbStr) : {};
 
@@ -204,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw new Error(error.message);
     }
-    if (user && !isSupabaseConfigured) {
+    if (user && isDemoMode) {
       const usersDbStr = localStorage.getItem(LOCAL_USERS_DB_KEY);
       if (usersDbStr) {
         const usersDb = JSON.parse(usersDbStr);

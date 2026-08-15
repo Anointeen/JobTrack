@@ -5,13 +5,31 @@ import {
   UserProfile, 
   NotificationPreferences 
 } from '../types';
-import { supabase, isSupabaseConfigured } from './supabase';
+import { supabase, isSupabaseConfigured, isDemoMode } from './supabase';
 
 const STORAGE_KEYS = {
   APPLICATIONS: 'jobtrack_applications_',
   HISTORY: 'jobtrack_status_history_',
   PROFILE: 'jobtrack_profile_',
   NOTIFICATIONS: 'jobtrack_notifications_'
+};
+
+/**
+ * Guards every localStorage code path below.
+ *
+ * The localStorage store is a development convenience only. Previously these
+ * paths ran whenever Supabase happened to be unconfigured, which meant a
+ * misconfigured deployment would silently serve seeded demo data. Demo mode is
+ * now development-only, so reaching one of these paths anywhere else is a bug
+ * and must fail loudly rather than fabricate data.
+ */
+const assertDemoMode = (operation: string): void => {
+  if (!isDemoMode) {
+    throw new Error(
+      `Cannot ${operation}: Supabase is not configured, and the local demo store is ` +
+        `available in development only.`
+    );
+  }
 };
 
 // Seed realistic sample applications for demo user
@@ -202,7 +220,8 @@ export const dataService = {
       return data as Application[];
     }
 
-    // Fallback: LocalStorage
+    // Development-only local store
+    assertDemoMode('load applications');
     const key = STORAGE_KEYS.APPLICATIONS + userId;
     const stored = localStorage.getItem(key);
     if (!stored) {
@@ -256,7 +275,8 @@ export const dataService = {
       return newApp;
     }
 
-    // LocalStorage
+    // Development-only local store
+    assertDemoMode('create an application');
     const newApp: Application = {
       ...appData,
       id: 'app-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
@@ -294,12 +314,10 @@ export const dataService = {
     const now = new Date().toISOString();
 
     if (isSupabaseConfigured && supabase) {
+      // `updated_at` is maintained by the set_applications_updated_at trigger.
       const { data, error } = await supabase
         .from('applications')
-        .update({
-          ...updates,
-          updated_at: now
-        })
+        .update({ ...updates })
         .eq('id', id)
         .eq('user_id', userId)
         .select()
@@ -325,7 +343,8 @@ export const dataService = {
       return updatedApp;
     }
 
-    // LocalStorage
+    // Development-only local store
+    assertDemoMode('update an application');
     const apps = await this.getApplications(userId);
     const index = apps.findIndex(a => a.id === id);
     if (index === -1) throw new Error('Application not found.');
@@ -367,14 +386,14 @@ export const dataService = {
       return;
     }
 
-    // LocalStorage
+    // Development-only local store
+    assertDemoMode('delete an application');
     const apps = await this.getApplications(userId);
     const filtered = apps.filter(a => a.id !== id);
     localStorage.setItem(STORAGE_KEYS.APPLICATIONS + userId, JSON.stringify(filtered));
 
-    // Clean up history
+    // Clean up history (Supabase does this via ON DELETE CASCADE)
     const historyKey = STORAGE_KEYS.HISTORY + userId;
-    const history = await this.getStatusHistory(userId, id);
     const allHistory = await this.getAllStatusHistory(userId);
     const updatedHistory = allHistory.filter(h => h.application_id !== id);
     localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
@@ -389,10 +408,15 @@ export const dataService = {
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-      if (error) return [];
+      if (error) {
+        console.error('Supabase fetch status history error:', error);
+        return [];
+      }
       return data as ApplicationStatusHistory[];
     }
 
+    // Development-only local store
+    assertDemoMode('load status history');
     const key = STORAGE_KEYS.HISTORY + userId;
     const stored = localStorage.getItem(key);
     if (!stored) {
@@ -422,7 +446,7 @@ export const dataService = {
       new_status: ApplicationStatus;
       note?: string;
     }
-  ): Promise<ApplicationStatusHistory> {
+  ): Promise<ApplicationStatusHistory | null> {
     const now = new Date().toISOString();
 
     if (isSupabaseConfigured && supabase) {
@@ -438,13 +462,18 @@ export const dataService = {
         .select()
         .single();
 
+      // History logging is best-effort: a failure here must not roll back the
+      // application change the user just made. It is reported, not thrown, and
+      // never silently redirected into the local demo store.
       if (error) {
         console.error('Supabase record status history error:', error);
-      } else if (data) {
-        return data as ApplicationStatusHistory;
+        return null;
       }
+      return data as ApplicationStatusHistory;
     }
 
+    // Development-only local store
+    assertDemoMode('record status history');
     const newHistory: ApplicationStatusHistory = {
       id: 'hist-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
       user_id: userId,
@@ -465,18 +494,25 @@ export const dataService = {
   // --- USER PROFILE ---
   async getProfile(userId: string): Promise<UserProfile | null> {
     if (isSupabaseConfigured && supabase) {
+      // `profiles.id` IS the auth user's UUID — there is no separate user_id.
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)
-        .single();
+        .eq('id', userId)
+        .maybeSingle();
 
+      // PGRST116 = no row. Any other error is a real failure and must surface:
+      // silently returning null here would let updateProfile() overwrite a
+      // live profile with blank values.
       if (error && error.code !== 'PGRST116') {
         console.error('Supabase fetch profile error:', error);
+        throw new Error(`Failed to load profile: ${error.message}`);
       }
-      if (data) return data as UserProfile;
+      return (data as UserProfile) ?? null;
     }
 
+    // Development-only local store
+    assertDemoMode('load a profile');
     const key = STORAGE_KEYS.PROFILE + userId;
     const stored = localStorage.getItem(key);
     if (stored) {
@@ -494,8 +530,7 @@ export const dataService = {
     const existing = await this.getProfile(userId);
 
     const fullProfile: UserProfile = {
-      id: existing?.id || userId,
-      user_id: userId,
+      id: userId,
       full_name: profileData.full_name || existing?.full_name || 'Job Tracker User',
       professional_title: profileData.professional_title ?? existing?.professional_title ?? '',
       location: profileData.location ?? existing?.location ?? '',
@@ -503,26 +538,35 @@ export const dataService = {
       linkedin_url: profileData.linkedin_url ?? existing?.linkedin_url ?? '',
       avatar_url: profileData.avatar_url ?? existing?.avatar_url ?? '',
       theme_preference: profileData.theme_preference ?? existing?.theme_preference ?? 'system',
-      onboarding_completed: profileData.onboarding_completed ?? existing?.onboarding_completed ?? true,
+      // Defaults to FALSE to match the column default. A profile is only
+      // onboarded once completeOnboarding() explicitly says so.
+      onboarding_completed:
+        profileData.onboarding_completed ?? existing?.onboarding_completed ?? false,
       created_at: existing?.created_at || now,
       updated_at: now
     };
 
     if (isSupabaseConfigured && supabase) {
+      // The handle_new_user() trigger creates this row at signup, so this is
+      // normally an update. Upserting on the `id` primary key keeps it correct
+      // even if the row is somehow absent. `updated_at` is set by the
+      // set_profiles_updated_at trigger.
       const { data, error } = await supabase
         .from('profiles')
-        .upsert([{
-          id: userId,
-          user_id: userId,
-          full_name: fullProfile.full_name,
-          professional_title: fullProfile.professional_title,
-          location: fullProfile.location,
-          phone: fullProfile.phone,
-          linkedin_url: fullProfile.linkedin_url,
-          avatar_url: fullProfile.avatar_url,
-          theme_preference: fullProfile.theme_preference,
-          updated_at: now
-        }])
+        .upsert(
+          [{
+            id: userId,
+            full_name: fullProfile.full_name,
+            professional_title: fullProfile.professional_title,
+            location: fullProfile.location,
+            phone: fullProfile.phone,
+            linkedin_url: fullProfile.linkedin_url,
+            avatar_url: fullProfile.avatar_url,
+            theme_preference: fullProfile.theme_preference,
+            onboarding_completed: fullProfile.onboarding_completed
+          }],
+          { onConflict: 'id' }
+        )
         .select()
         .single();
 
@@ -533,28 +577,14 @@ export const dataService = {
       return data as UserProfile;
     }
 
+    // Development-only local store
+    assertDemoMode('save a profile');
     localStorage.setItem(STORAGE_KEYS.PROFILE + userId, JSON.stringify(fullProfile));
     return fullProfile;
   },
 
   // --- NOTIFICATION PREFERENCES ---
   async getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
-    if (isSupabaseConfigured && supabase) {
-      const { data } = await supabase
-        .from('notification_preferences')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (data) return data as NotificationPreferences;
-    }
-
-    const key = STORAGE_KEYS.NOTIFICATIONS + userId;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      try { return JSON.parse(stored); } catch { /* ignore */ }
-    }
-
     const defaults: NotificationPreferences = {
       id: 'notif-' + userId,
       user_id: userId,
@@ -562,6 +592,31 @@ export const dataService = {
       interview_reminders: true,
       follow_up_reminders: true
     };
+
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Supabase fetch notification preferences error:', error);
+        throw new Error(`Failed to load notification preferences: ${error.message}`);
+      }
+      // handle_new_user() seeds this row, but fall back to the same defaults
+      // the column definitions use if it is missing.
+      return (data as NotificationPreferences) ?? defaults;
+    }
+
+    // Development-only local store
+    assertDemoMode('load notification preferences');
+    const key = STORAGE_KEYS.NOTIFICATIONS + userId;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      try { return JSON.parse(stored); } catch { /* ignore */ }
+    }
+
     return defaults;
   },
 
@@ -577,26 +632,89 @@ export const dataService = {
     };
 
     if (isSupabaseConfigured && supabase) {
-      await supabase
+      // `onConflict: 'user_id'` targets the UNIQUE(user_id) constraint. Without
+      // it PostgREST resolves the conflict against the `id` primary key, which
+      // is never supplied here — so every save generated a fresh id and the
+      // second save violated UNIQUE(user_id). The error was also unchecked, so
+      // the UI reported success on a failed write.
+      const { data, error } = await supabase
         .from('notification_preferences')
-        .upsert([{
-          user_id: userId,
-          deadline_reminders: updated.deadline_reminders,
-          interview_reminders: updated.interview_reminders,
-          follow_up_reminders: updated.follow_up_reminders
-        }]);
+        .upsert(
+          [{
+            user_id: userId,
+            deadline_reminders: updated.deadline_reminders,
+            interview_reminders: updated.interview_reminders,
+            follow_up_reminders: updated.follow_up_reminders
+          }],
+          { onConflict: 'user_id' }
+        )
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase update notification preferences error:', error);
+        throw new Error(`Failed to save notification preferences: ${error.message}`);
+      }
+      return data as NotificationPreferences;
     }
 
+    // Development-only local store
+    assertDemoMode('save notification preferences');
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS + userId, JSON.stringify(updated));
     return updated;
   },
 
   // --- DANGER ZONE: DELETE ACCOUNT ---
+  /**
+   * Deletes every row this user owns.
+   *
+   * INCOMPLETE BY DESIGN: the `auth.users` record itself cannot be removed from
+   * the browser — that requires the Auth Admin API, which needs a service-role
+   * key and therefore must live in a Supabase Edge Function. Until that exists,
+   * the login remains valid and signing back in produces an empty account that
+   * re-runs onboarding.
+   *
+   * Previously this method did nothing at all against Supabase while the UI
+   * promised a permanent wipe.
+   */
   async deleteAccount(userId: string): Promise<void> {
     if (isSupabaseConfigured && supabase) {
-      // In production Supabase, RPC or Auth Admin API deletes the auth user
+      // Deleting applications cascades to application_status_history.
+      const { error: applicationsError } = await supabase
+        .from('applications')
+        .delete()
+        .eq('user_id', userId);
+
+      if (applicationsError) {
+        console.error('Supabase delete applications error:', applicationsError);
+        throw new Error(`Failed to delete applications: ${applicationsError.message}`);
+      }
+
+      const { error: preferencesError } = await supabase
+        .from('notification_preferences')
+        .delete()
+        .eq('user_id', userId);
+
+      if (preferencesError) {
+        console.error('Supabase delete notification preferences error:', preferencesError);
+        throw new Error(`Failed to delete notification preferences: ${preferencesError.message}`);
+      }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error('Supabase delete profile error:', profileError);
+        throw new Error(`Failed to delete profile: ${profileError.message}`);
+      }
+
+      return;
     }
 
+    // Development-only local store
+    assertDemoMode('delete an account');
     localStorage.removeItem(STORAGE_KEYS.APPLICATIONS + userId);
     localStorage.removeItem(STORAGE_KEYS.HISTORY + userId);
     localStorage.removeItem(STORAGE_KEYS.PROFILE + userId);

@@ -1,5 +1,34 @@
+-- ###########################################################################
+-- ##  SUPERSEDED — DO NOT RUN THIS FILE                                    ##
+-- ###########################################################################
+--
+-- This is the original pre-audit schema. It is retained for historical
+-- reference only and MUST NOT be executed against any database.
+--
+-- The authoritative schema now lives in:
+--
+--     supabase/migrations/0001_baseline.sql
+--
+-- Executing this file would reintroduce the defects that migration corrects:
+--
+--   * profiles carries both `id` and `user_id` referencing auth.users, which
+--     lets a user insert a profile under another user's primary key.
+--   * All UPDATE policies omit WITH CHECK, so a user can reassign a row's
+--     user_id and move data into another user's account.
+--   * The status-history INSERT policy never verifies that the referenced
+--     application belongs to the caller.
+--   * `profiles.onboarding_completed` is missing, which traps every user in
+--     the onboarding modal on every login.
+--   * No CHECK constraints and no indexes on the user_id columns that every
+--     RLS policy filters by.
+--
+-- This file is safe to delete once no longer needed for reference; the full
+-- original is preserved in git history at the baseline commit.
+--
+-- ###########################################################################
+
 -- JobTrack Database Schema & Row Level Security (RLS) Policies
--- Run this script in your Supabase SQL Editor to set up the database tables and security policies.
+-- (original header: "Run this script in your Supabase SQL Editor" — no longer valid)
 
 -- 1. Create PROFILES Table
 CREATE TABLE IF NOT EXISTS public.profiles (

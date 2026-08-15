@@ -49,19 +49,26 @@ export interface ApplicationStatusHistory {
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+/**
+ * A user's profile.
+ *
+ * `id` IS the authenticated user's UUID (profiles.id references auth.users.id).
+ * There is deliberately no separate `user_id` column: a second owner field
+ * allowed a user to insert a row under another user's primary key, so the two
+ * were collapsed into this single authoritative key in migration 0001.
+ */
 export interface UserProfile {
   id: string;
-  user_id: string;
   full_name: string;
   professional_title?: string;
   location?: string;
   phone?: string;
   linkedin_url?: string;
   avatar_url?: string;
-  theme_preference?: ThemeMode;
+  theme_preference: ThemeMode;
+  onboarding_completed: boolean;
   created_at: string;
   updated_at: string;
-  onboarding_completed?: boolean;
 }
 
 export interface NotificationPreferences {
