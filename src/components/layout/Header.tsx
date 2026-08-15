@@ -23,11 +23,27 @@ export const Header: React.FC<HeaderProps> = ({
   const { resolvedTheme, toggleTheme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
 
+  /**
+   * Navigation happens on submit (Enter / search button) only.
+   *
+   * Previously onChange called onSelectTab('applications') on every keystroke,
+   * which yanked the user off the Dashboard as soon as they typed a character.
+   * Typing now only updates the query; if the user is already on Applications
+   * the list still filters live, because that view reads the same query.
+   */
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      onSelectTab('applications');
+    }
+  };
+
   return (
-    <header 
-      style={{ 
-        height: 'var(--header-height)', 
-        backgroundColor: 'var(--bg-surface)', 
+    <header
+      className="app-header"
+      style={{
+        height: 'var(--header-height)',
+        backgroundColor: 'var(--bg-surface)',
         borderBottom: '1px solid var(--border-color)',
         display: 'flex',
         alignItems: 'center',
@@ -38,33 +54,43 @@ export const Header: React.FC<HeaderProps> = ({
         zIndex: 5
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-        <button 
-          className="btn btn-ghost btn-sm mobile-only" 
+      <div className="app-header-left">
+        <button
+          className="btn btn-ghost btn-sm mobile-only"
           onClick={onOpenMobileSidebar}
+          aria-label="Open navigation menu"
           style={{ padding: '6px' }}
         >
           <Menu size={22} />
         </button>
 
-        {/* Quick Search */}
-        <div style={{ position: 'relative', maxWidth: '320px', width: '100%' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+        {/* Quick Search — submits to the Applications view */}
+        <form className="header-search" onSubmit={handleSearchSubmit} role="search">
+          <button
+            type="submit"
+            aria-label="Search applications"
+            style={{
+              position: 'absolute', left: '4px', top: '50%', transform: 'translateY(-50%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '28px', height: '28px', padding: 0,
+              background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-subtle)'
+            }}
+          >
+            <Search size={16} />
+          </button>
           <input
-            type="text"
+            type="search"
             className="input-control"
             placeholder="Search applications..."
             value={searchQuery}
-            onChange={e => {
-              onSearchChange(e.target.value);
-              onSelectTab('applications');
-            }}
+            onChange={e => onSearchChange(e.target.value)}
+            aria-label="Search applications"
             style={{ paddingLeft: '2.25rem', height: '38px', fontSize: '0.875rem' }}
           />
-        </div>
+        </form>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <div className="app-header-actions">
         {/* Quick Add CTA */}
         <button
           onClick={onOpenAddApplication}
@@ -72,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
           style={{ gap: '0.375rem' }}
         >
           <Plus size={16} />
-          <span>Add Application</span>
+          <span className="btn-label-md">Add Application</span>
         </button>
 
         {/* Theme Toggle Button */}
@@ -90,7 +116,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Notifications Dropdown Toggle */}
-        <div style={{ position: 'relative' }}>
+        <div className="header-notifications" style={{ position: 'relative' }}>
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => setShowNotifications(!showNotifications)}

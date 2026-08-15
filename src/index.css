@@ -39,29 +39,34 @@
 
   --emerald-50: #ecfdf5;
   --emerald-100: #d1fae5;
+  --emerald-200: #a7f3d0;
   --emerald-500: #10b981;
   --emerald-600: #059669;
   --emerald-700: #047857;
 
   --amber-50: #fffbeb;
   --amber-100: #fef3c7;
+  --amber-200: #fde68a;
   --amber-500: #f59e0b;
   --amber-600: #d97706;
   --amber-700: #b45309;
 
   --rose-50: #fff1f2;
   --rose-100: #ffe4e6;
+  --rose-200: #fecdd3;
   --rose-500: #f43f5e;
   --rose-600: #e11d48;
   --rose-700: #be123c;
 
   --sky-50: #f0f9ff;
   --sky-100: #e0f2fe;
+  --sky-200: #bae6fd;
   --sky-600: #0284c7;
   --sky-700: #0369a1;
 
   --purple-50: #faf5ff;
   --purple-100: #f3e8ff;
+  --purple-200: #e9d5ff;
   --purple-600: #9333ea;
   --purple-700: #6b21a8;
 
@@ -154,18 +159,23 @@
 
   --emerald-50: rgba(16, 185, 129, 0.15);
   --emerald-100: rgba(16, 185, 129, 0.25);
+  --emerald-200: rgba(16, 185, 129, 0.4);
 
   --amber-50: rgba(245, 158, 11, 0.15);
   --amber-100: rgba(245, 158, 11, 0.25);
+  --amber-200: rgba(245, 158, 11, 0.4);
 
   --rose-50: rgba(244, 63, 94, 0.15);
   --rose-100: rgba(244, 63, 94, 0.25);
+  --rose-200: rgba(244, 63, 94, 0.4);
 
   --sky-50: rgba(2, 132, 199, 0.15);
   --sky-100: rgba(2, 132, 199, 0.25);
+  --sky-200: rgba(2, 132, 199, 0.4);
 
   --purple-50: rgba(147, 51, 234, 0.15);
   --purple-100: rgba(147, 51, 234, 0.25);
+  --purple-200: rgba(147, 51, 234, 0.4);
 
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
@@ -431,10 +441,23 @@ button, input, select, textarea {
   white-space: nowrap;
 }
 
+/* Badge size="sm" previously applied a `text-xs` class that was never defined,
+   so the small variant rendered identically to the default. */
+.badge-sm {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  gap: 0.3125rem;
+}
+
 .badge-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+}
+
+.badge-sm .badge-dot {
+  width: 5px;
+  height: 5px;
 }
 
 .badge-saved {
@@ -613,6 +636,158 @@ button, input, select, textarea {
 
 .table-row-hover:hover {
   background-color: var(--bg-surface-hover) !important;
+}
+
+/* ==========================================================================
+   RESPONSIVE LAYOUT
+   --------------------------------------------------------------------------
+   Breakpoint: 768px, matching the existing .main-content media query.
+
+   .desktop-only, .mobile-only and .desktop-sidebar-container were referenced
+   by components but never defined, so every applications row rendered twice
+   (desktop table AND mobile cards) and the sidebar never collapsed.
+
+   Each class is only ever *hidden* in one range and left completely alone in
+   the other. That way the element keeps whatever display its own styles give
+   it (.btn is inline-flex, the card list is inline flex, etc.) and we never
+   need to guess a display value or undo an !important.
+   ========================================================================== */
+
+/* Hidden on small screens. */
+@media (max-width: 768px) {
+  .desktop-only,
+  .desktop-sidebar-container {
+    display: none !important;
+  }
+}
+
+/* Hidden on large screens. The drawer backdrop is included so a drawer left
+   open while resizing up cannot linger over the desktop layout. */
+@media (min-width: 769px) {
+  .mobile-only,
+  .mobile-backdrop {
+    display: none !important;
+  }
+}
+
+/* Long unbroken company names, job titles and URLs must wrap instead of
+   pushing the layout wider than the viewport. `break-word` only breaks when
+   a word genuinely cannot fit, so normal text is unaffected. */
+h1, h2, h3, h4, h5, h6,
+p, span, td, th, li, a, label {
+  overflow-wrap: break-word;
+}
+
+/* Flex/grid children default to min-width:auto, which lets wide content force
+   a horizontal page scroll. */
+.app-container,
+.main-wrapper,
+.main-content {
+  min-width: 0;
+}
+
+/* --- Header ------------------------------------------------------------- */
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.header-search {
+  position: relative;
+  max-width: 320px;
+  width: 100%;
+  min-width: 0;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 0.75rem !important;
+    gap: 0.5rem;
+  }
+
+  .app-header-left {
+    gap: 0.5rem;
+  }
+
+  .app-header-actions {
+    gap: 0.25rem;
+  }
+
+  .header-search {
+    max-width: none;
+  }
+
+  /* Quick-add collapses to its icon so the row cannot overflow. */
+  .btn-label-md {
+    display: none;
+  }
+
+  .app-header-actions .btn-primary {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* The notifications dropdown is an informational placeholder; the same
+     content is reachable from Settings. Dropped first when space is tight. */
+  .header-notifications {
+    display: none;
+  }
+}
+
+/* --- Modals ------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .modal-backdrop {
+    padding: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 1.5rem);
+    margin: 0.25rem 0;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Footers with left/right button groups stack instead of squashing. */
+  .modal-footer {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+/* --- Toasts ------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .toast-container {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: auto;
+    max-width: none;
+  }
+}
+
+/* --- Tables ------------------------------------------------------------- */
+/* Wide tables scroll inside their own container rather than widening the page.
+   This is a deliberate scroll region, not hidden overflow. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 768px) {

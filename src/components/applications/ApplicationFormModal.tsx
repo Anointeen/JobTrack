@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Application, ApplicationStatus, JobType } from '../../types';
-import { Building2, Briefcase, MapPin, DollarSign, Calendar, Link as LinkIcon, User, Mail, FileText, Check } from 'lucide-react';
+import { Building2, Briefcase, MapPin, Calendar, Link as LinkIcon, User, Mail } from 'lucide-react';
 
 interface ApplicationFormModalProps {
   isOpen: boolean;
@@ -86,6 +86,34 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       if (!emailRegex.test(recruiterEmail)) {
         errs.recruiterEmail = 'Please enter a valid email address.';
       }
+    }
+
+    // The checks below mirror the database CHECK constraints added in migration
+    // 0001 (applications_salary_range_check and
+    // applications_deadline_after_application_date_check). Catching them here
+    // gives a readable message instead of a raw Postgres 23514 error; the
+    // constraints remain the authoritative integrity layer.
+    const min = salaryMin.trim() ? parseFloat(salaryMin) : null;
+    const max = salaryMax.trim() ? parseFloat(salaryMax) : null;
+
+    if (min !== null && (Number.isNaN(min) || min < 0)) {
+      errs.salaryMin = 'Minimum salary must be a number of 0 or more.';
+    }
+    if (max !== null && (Number.isNaN(max) || max < 0)) {
+      errs.salaryMax = 'Maximum salary must be a number of 0 or more.';
+    }
+    if (
+      min !== null && max !== null &&
+      !Number.isNaN(min) && !Number.isNaN(max) &&
+      min >= 0 && max >= 0 && max < min
+    ) {
+      errs.salaryMax = 'Maximum salary cannot be lower than minimum salary.';
+    }
+
+    // Both are ISO YYYY-MM-DD strings, so a string comparison is a correct
+    // date comparison and avoids timezone drift from Date parsing.
+    if (deadline && applicationDate && deadline < applicationDate) {
+      errs.deadline = 'Deadline cannot be earlier than the application date.';
     }
 
     setErrors(errs);
@@ -285,32 +313,38 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
             <label className="form-label">Salary Min ($/yr)</label>
             <input
               type="number"
-              className="input-control"
+              min="0"
+              className={`input-control ${errors.salaryMin ? 'input-error' : ''}`}
               placeholder="e.g. 140000"
               value={salaryMin}
               onChange={e => setSalaryMin(e.target.value)}
             />
+            {errors.salaryMin && <span className="form-error">{errors.salaryMin}</span>}
           </div>
 
           <div className="form-group">
             <label className="form-label">Salary Max ($/yr)</label>
             <input
               type="number"
-              className="input-control"
+              min="0"
+              className={`input-control ${errors.salaryMax ? 'input-error' : ''}`}
               placeholder="e.g. 180000"
               value={salaryMax}
               onChange={e => setSalaryMax(e.target.value)}
             />
+            {errors.salaryMax && <span className="form-error">{errors.salaryMax}</span>}
           </div>
 
           <div className="form-group">
             <label className="form-label">Application Deadline</label>
             <input
               type="date"
-              className="input-control"
+              className={`input-control ${errors.deadline ? 'input-error' : ''}`}
               value={deadline}
+              min={applicationDate || undefined}
               onChange={e => setDeadline(e.target.value)}
             />
+            {errors.deadline && <span className="form-error">{errors.deadline}</span>}
           </div>
         </div>
 

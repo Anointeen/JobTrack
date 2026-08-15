@@ -7,15 +7,13 @@ import {
   Search, 
   Filter, 
   ArrowUpDown, 
-  Eye, 
-  Edit3, 
-  Trash2, 
-  Building2, 
-  MapPin, 
-  Calendar, 
-  Briefcase, 
-  Clock, 
-  AlertTriangle 
+  Eye,
+  Edit3,
+  Trash2,
+  MapPin,
+  Calendar,
+  Briefcase,
+  AlertTriangle
 } from 'lucide-react';
 
 interface ApplicationsViewProps {
@@ -174,9 +172,9 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                     padding: '0.25rem 0.75rem',
                     borderRadius: 'var(--radius-full)',
                     border: '1px solid',
-                    borderColor: isActive ? 'var(--primary-600)' : 'var(--slate-200)',
-                    backgroundColor: isActive ? 'var(--primary-50)' : '#ffffff',
-                    color: isActive ? 'var(--primary-700)' : 'var(--slate-600)',
+                    borderColor: isActive ? 'var(--primary-600)' : 'var(--border-color)',
+                    backgroundColor: isActive ? 'var(--primary-50)' : 'var(--bg-surface)',
+                    color: isActive ? 'var(--primary-700)' : 'var(--text-muted)',
                     fontWeight: isActive ? 700 : 500,
                     fontSize: '0.8125rem',
                     cursor: 'pointer',
@@ -216,7 +214,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
         /* Zero Filtered Results State */
         <div 
           className="card" 
-          style={{ padding: '3.5rem 1.5rem', textAlign: 'center', backgroundColor: '#ffffff' }}
+          style={{ padding: '3.5rem 1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-surface)' }}
         >
           <div 
             style={{ 
@@ -261,7 +259,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
         <>
           {/* Desktop Table View */}
           <div className="desktop-only card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ overflowX: 'auto' }}>
+            <div className="table-scroll">
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ backgroundColor: 'var(--slate-50)', borderBottom: '1px solid var(--slate-200)', color: 'var(--slate-500)', fontSize: '0.78125rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -396,12 +394,12 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
             zIndex: 9999
           }}
         >
-          <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', padding: '1.5rem', borderRadius: '16px', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--rose-50)', color: 'var(--rose-600)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
               <AlertTriangle size={24} />
             </div>
-            <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>Confirm Delete</h4>
-            <p style={{ fontSize: '0.875rem', color: 'var(--slate-600)', marginBottom: '1.25rem' }}>
+            <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-heading)' }}>Confirm Delete</h4>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
               Are you sure you want to delete this job application?
             </p>
             <div style={{ display: 'flex', gap: '0.75rem' }}>

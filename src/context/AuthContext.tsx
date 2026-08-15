@@ -8,6 +8,12 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   needsOnboarding: boolean;
+  /** True while the user is in a Supabase password-recovery session. */
+  isPasswordRecovery: boolean;
+  /** Leaves recovery mode once a new password has been set. */
+  completePasswordRecovery: () => void;
+  /** Abandons recovery mode and signs the temporary session out. */
+  cancelPasswordRecovery: () => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   logIn: (email: string, password: string) => Promise<void>;
   logOut: () => Promise<void>;
@@ -45,63 +51,106 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
+  /**
+   * Seeded from the URL fragment so the recovery screen is chosen on the very
+   * first render. Supabase strips `#access_token=...&type=recovery` from the
+   * URL once it has consumed it, so relying only on the PASSWORD_RECOVERY
+   * event can briefly flash the dashboard first. The event below still sets
+   * this too, covering whichever happens first.
+   */
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.hash.includes('type=recovery');
+  });
+
   // Initialize Auth state
+  //
+  // The cleanup function is returned from useEffect *synchronously*. It used to
+  // be returned from inside the async initAuth(), so React received a Promise
+  // instead of a cleanup function and the auth subscription was never released
+  // — under StrictMode's double-mount that left a second live listener behind,
+  // duplicating every profile fetch.
   useEffect(() => {
-    const initAuth = async () => {
-      setLoading(true);
-      if (isSupabaseConfigured && supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
+    let cancelled = false;
+    let subscription: { unsubscribe: () => void } | null = null;
+
+    const toSession = (u: { id: string; email?: string | null; email_confirmed_at?: string | null }): UserSession => ({
+      id: u.id,
+      email: u.email || '',
+      email_verified: Boolean(u.email_confirmed_at)
+    });
+
+    if (isSupabaseConfigured && supabase) {
+      // Registered before the first await so no auth event can slip through the
+      // gap, and so the unsubscribe handle exists by the time cleanup runs.
+      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        if (cancelled) return;
+
+        // Fired when the user opens the recovery link from their email. The
+        // session that arrives with it is only meant for setting a new password.
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsPasswordRecovery(true);
+        }
+
         if (session?.user) {
-          const userSession: UserSession = {
-            id: session.user.id,
-            email: session.user.email || '',
-            email_verified: Boolean(session.user.email_confirmed_at)
-          };
-          setUser(userSession);
-          await loadUserProfile(userSession.id);
+          const u = toSession(session.user);
+          setUser(u);
+          // Deferred to a fresh task: supabase-js invokes this callback while
+          // holding its internal auth lock, and awaiting another client call
+          // inline can deadlock.
+          setTimeout(() => {
+            if (!cancelled) void loadUserProfile(u.id);
+          }, 0);
         } else {
           setUser(null);
           setProfile(null);
+          setNeedsOnboarding(false);
         }
+      });
+      subscription = authListener.subscription;
 
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      void (async () => {
+        try {
+          const { data: { session } } = await supabase!.auth.getSession();
+          if (cancelled) return;
+
           if (session?.user) {
-            const u: UserSession = {
-              id: session.user.id,
-              email: session.user.email || '',
-              email_verified: Boolean(session.user.email_confirmed_at)
-            };
-            setUser(u);
-            await loadUserProfile(u.id);
+            const userSession = toSession(session.user);
+            setUser(userSession);
+            await loadUserProfile(userSession.id);
           } else {
             setUser(null);
             setProfile(null);
           }
-        });
-
-        setLoading(false);
-        return () => {
-          authListener.subscription.unsubscribe();
-        };
-      } else if (isDemoMode) {
-        // Local Demo Auth Persistence (development only)
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      })();
+    } else if (isDemoMode) {
+      // Local Demo Auth Persistence (development only)
+      void (async () => {
         const savedUserStr = localStorage.getItem(LOCAL_USER_KEY);
         if (savedUserStr) {
           try {
             const savedUser: UserSession = JSON.parse(savedUserStr);
-            setUser(savedUser);
-            await loadUserProfile(savedUser.id);
+            if (!cancelled) {
+              setUser(savedUser);
+              await loadUserProfile(savedUser.id);
+            }
           } catch {
             localStorage.removeItem(LOCAL_USER_KEY);
           }
         }
-        setLoading(false);
-      } else {
-        setLoading(false);
-      }
-    };
+        if (!cancelled) setLoading(false);
+      })();
+    } else {
+      setLoading(false);
+    }
 
-    initAuth();
+    return () => {
+      cancelled = true;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const loadUserProfile = async (userId: string) => {
@@ -219,14 +268,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setProfile(null);
     setNeedsOnboarding(false);
+    setIsPasswordRecovery(false);
   };
 
   const resetPassword = async (email: string) => {
     if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      // Without redirectTo the recovery link uses the project's default Site
+      // URL, which may not point back at this build. The link returns here with
+      // `type=recovery` in the fragment, which the auth listener picks up.
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}${window.location.pathname}`
+      });
       if (error) throw new Error(error.message);
+      return;
     }
-    // Simulation for demo mode
+    // Demo mode has no mail delivery; the modal still shows its sent state.
+  };
+
+  const completePasswordRecovery = () => {
+    setIsPasswordRecovery(false);
+  };
+
+  const cancelPasswordRecovery = async () => {
+    setIsPasswordRecovery(false);
+    await logOut();
   };
 
   const updatePassword = async (password: string) => {
@@ -269,6 +334,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profile,
         loading,
         needsOnboarding,
+        isPasswordRecovery,
+        completePasswordRecovery,
+        cancelPasswordRecovery,
         signUp,
         logIn,
         logOut,

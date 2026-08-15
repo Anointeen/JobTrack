@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Modal } from '../common/Modal';
 import { Application, ApplicationStatus, ApplicationStatusHistory } from '../../types';
 import { Badge } from '../common/Badge';
@@ -8,17 +8,14 @@ import {
   Building2, 
   MapPin, 
   Briefcase, 
-  ExternalLink, 
-  DollarSign, 
-  Calendar, 
-  User, 
-  Mail, 
-  FileText, 
-  Edit3, 
-  Trash2, 
-  Clock, 
-  CheckCircle2, 
-  AlertTriangle 
+  ExternalLink,
+  DollarSign,
+  Calendar,
+  FileText,
+  Edit3,
+  Trash2,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 
 interface ApplicationDetailModalProps {
@@ -38,37 +35,57 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   onDelete,
   onStatusChanged
 }) => {
-  if (!application) return null;
-
+  // Every hook below runs unconditionally, in the same order, on every render.
+  //
+  // This component used to `return null` before its hooks whenever
+  // `application` was null. React tolerated it only because a zero-hook render
+  // makes the next render fall back to the mount dispatcher — which also meant
+  // all modal state was silently discarded. Bailing out after the hooks keeps
+  // the order stable and makes the reset behaviour explicit instead of
+  // incidental.
   const [history, setHistory] = useState<ApplicationStatusHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showStatusChange, setShowStatusChange] = useState(false);
-  const [newStatus, setNewStatus] = useState<ApplicationStatus>(application.status);
+  const [newStatus, setNewStatus] = useState<ApplicationStatus>('Applied');
   const [statusNote, setStatusNote] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  useEffect(() => {
-    if (application && isOpen) {
-      setNewStatus(application.status);
-      setShowStatusChange(false);
-      setShowDeleteConfirm(false);
-      loadHistory();
-    }
-  }, [application, isOpen]);
+  // Primitive fields, so the effect below keys off stable values rather than a
+  // new object identity on every parent render.
+  const applicationId = application?.id ?? null;
+  const applicationUserId = application?.user_id ?? null;
+  const applicationStatus = application?.status ?? null;
 
-  const loadHistory = async () => {
-    if (!application) return;
+  const loadHistory = useCallback(async () => {
+    if (!applicationId || !applicationUserId) return;
     setLoadingHistory(true);
     try {
-      const logs = await dataService.getStatusHistory(application.user_id, application.id);
+      const logs = await dataService.getStatusHistory(applicationUserId, applicationId);
       setHistory(logs);
     } catch (err) {
       console.error('Error loading history:', err);
     } finally {
       setLoadingHistory(false);
     }
-  };
+  }, [applicationId, applicationUserId]);
+
+  useEffect(() => {
+    if (!isOpen || !applicationId) return;
+
+    // Reset per-application state explicitly. Because hooks now persist across
+    // open/close, a stale note or the previous application's timeline would
+    // otherwise carry over into the next one.
+    setNewStatus(applicationStatus ?? 'Applied');
+    setShowStatusChange(false);
+    setShowDeleteConfirm(false);
+    setStatusNote('');
+    setHistory([]);
+    void loadHistory();
+  }, [isOpen, applicationId, applicationStatus, loadHistory]);
+
+  // Hooks are complete — safe to bail out for the empty state.
+  if (!application) return null;
 
   const handleUpdateStatus = async () => {
     if (!application || newStatus === application.status) return;
@@ -238,39 +255,39 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
       {/* Main Details Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
-        <div style={{ padding: '1rem', backgroundColor: 'var(--slate-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--slate-500)', fontSize: '0.8125rem', marginBottom: '4px' }}>
+        <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '4px' }}>
             <MapPin size={16} /> Location
           </div>
-          <p style={{ fontWeight: 600, color: 'var(--slate-900)' }}>{application.location || 'Remote / Unspecified'}</p>
+          <p style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{application.location || 'Remote / Unspecified'}</p>
         </div>
 
-        <div style={{ padding: '1rem', backgroundColor: 'var(--slate-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--slate-500)', fontSize: '0.8125rem', marginBottom: '4px' }}>
+        <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '4px' }}>
             <Briefcase size={16} /> Job Type
           </div>
-          <p style={{ fontWeight: 600, color: 'var(--slate-900)' }}>{application.job_type}</p>
+          <p style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{application.job_type}</p>
         </div>
 
-        <div style={{ padding: '1rem', backgroundColor: 'var(--slate-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--slate-500)', fontSize: '0.8125rem', marginBottom: '4px' }}>
+        <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '4px' }}>
             <DollarSign size={16} /> Salary Range
           </div>
-          <p style={{ fontWeight: 600, color: 'var(--slate-900)' }}>{formatSalary(application.salary_min, application.salary_max)}</p>
+          <p style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{formatSalary(application.salary_min, application.salary_max)}</p>
         </div>
 
-        <div style={{ padding: '1rem', backgroundColor: 'var(--slate-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--slate-500)', fontSize: '0.8125rem', marginBottom: '4px' }}>
+        <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '4px' }}>
             <Calendar size={16} /> Application Date
           </div>
-          <p style={{ fontWeight: 600, color: 'var(--slate-900)' }}>{formatDate(application.application_date)}</p>
+          <p style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{formatDate(application.application_date)}</p>
         </div>
       </div>
 
       {/* Posting Link & Recruiter */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
         {application.job_posting_url && (
-          <div style={{ padding: '0.875rem', backgroundColor: '#ffffff', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+          <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
             <span style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--slate-500)' }}>Job Posting URL</span>
             <div style={{ marginTop: '4px' }}>
               <a 
@@ -286,7 +303,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
         )}
 
         {(application.recruiter_name || application.recruiter_email) && (
-          <div style={{ padding: '0.875rem', backgroundColor: '#ffffff', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+          <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
             <span style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--slate-500)' }}>Recruiter Contact</span>
             <div style={{ marginTop: '4px', fontSize: '0.875rem', color: 'var(--slate-900)' }}>
               {application.recruiter_name && <div><strong>{application.recruiter_name}</strong></div>}
@@ -308,12 +325,12 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
           </h4>
           <div 
             style={{ 
-              padding: '1rem', 
-              borderRadius: 'var(--radius-md)', 
-              backgroundColor: 'var(--slate-50)', 
-              border: '1px solid var(--slate-200)',
+              padding: '1rem',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'var(--bg-subtle)',
+              border: '1px solid var(--border-color)',
               fontSize: '0.875rem',
-              color: 'var(--slate-700)',
+              color: 'var(--text-main)',
               whiteSpace: 'pre-wrap',
               lineHeight: 1.6
             }}
@@ -328,7 +345,13 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
         <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--slate-900)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Clock size={18} color="var(--slate-500)" /> Status Progression & History Log
         </h4>
-        <StatusHistoryTimeline history={history} />
+        {loadingHistory ? (
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+            Loading status history…
+          </p>
+        ) : (
+          <StatusHistoryTimeline history={history} />
+        )}
       </div>
 
       {/* Delete Confirmation Sub-Modal */}
@@ -346,12 +369,12 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             zIndex: 10
           }}
         >
-          <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '16px', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', padding: '1.5rem', borderRadius: '16px', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--rose-50)', color: 'var(--rose-600)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
               <AlertTriangle size={24} />
             </div>
-            <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>Delete Application?</h4>
-            <p style={{ fontSize: '0.875rem', color: 'var(--slate-600)', marginBottom: '1.25rem' }}>
+            <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-heading)' }}>Delete Application?</h4>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
               Are you sure you want to delete this application for <strong>{application.job_title}</strong> at <strong>{application.company_name}</strong>? This action cannot be undone.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem' }}>

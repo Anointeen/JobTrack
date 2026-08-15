@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { LandingPage } from './components/landing/LandingPage';
 import { AuthModal } from './components/auth/AuthModal';
 import { ForgotPasswordModal } from './components/auth/ForgotPasswordModal';
 import { OnboardingModal } from './components/auth/OnboardingModal';
+import { SetNewPasswordModal } from './components/auth/SetNewPasswordModal';
 import { AppLayout } from './components/layout/AppLayout';
-import { NavTab } from './components/layout/Sidebar';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { ApplicationsView } from './components/applications/ApplicationsView';
 import { ProfileView } from './components/profile/ProfileView';
@@ -18,9 +18,10 @@ import { ApplicationDetailModal } from './components/applications/ApplicationDet
 import { Application, ApplicationStatus } from './types';
 import { dataService } from './lib/dataService';
 import { Skeleton } from './components/common/Skeleton';
+import { ThemeSync } from './components/common/ThemeSync';
 
 const MainAppContent: React.FC = () => {
-  const { user, loading, needsOnboarding } = useAuth();
+  const { user, loading, needsOnboarding, isPasswordRecovery } = useAuth();
 
   // Landing & Auth Modal States
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -68,6 +69,13 @@ const MainAppContent: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // Password recovery takes precedence over every other view. The recovery link
+  // grants a real session, so without this gate the user would land on the
+  // dashboard instead of being asked to choose a new password.
+  if (isPasswordRecovery) {
+    return <SetNewPasswordModal />;
   }
 
   // Unauthenticated State -> Landing Page
@@ -259,6 +267,8 @@ export function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        {/* Reconciles the device theme with the account's theme_preference. */}
+        <ThemeSync />
         <MainAppContent />
       </AuthProvider>
     </ThemeProvider>

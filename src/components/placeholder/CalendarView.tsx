@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, Sparkles } from 'lucide-react';
+import { Calendar, Sparkles } from 'lucide-react';
 
 export const CalendarView: React.FC = () => {
   return (
@@ -18,7 +18,7 @@ export const CalendarView: React.FC = () => {
         style={{ 
           padding: '4rem 2rem', 
           textAlign: 'center', 
-          background: 'linear-gradient(180deg, #ffffff 0%, var(--slate-50) 100%)',
+          background: 'linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-subtle) 100%)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

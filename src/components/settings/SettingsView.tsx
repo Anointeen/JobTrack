@@ -11,7 +11,7 @@ interface SettingsViewProps {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
   const { user, updatePassword, logOut } = useAuth();
-  const { themeMode, setThemeMode, resolvedTheme } = useTheme();
+  const { themeMode, setThemeMode } = useTheme();
 
   // Password state
   const [newPassword, setNewPassword] = useState('');
@@ -42,8 +42,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
       setDeadlineReminders(prefs.deadline_reminders);
       setInterviewReminders(prefs.interview_reminders);
       setFollowUpReminders(prefs.follow_up_reminders);
-    } catch (err) {
+    } catch (err: any) {
+      // Surfaced rather than swallowed: the toggles would otherwise silently
+      // display defaults that do not match what is stored.
       console.error('Failed to load notification preferences:', err);
+      onShowToast(
+        'error',
+        'Could not load preferences',
+        err?.message || 'Your saved notification settings could not be loaded.'
+      );
     }
   };
 
@@ -74,16 +81,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
     }
   };
 
-  const handleThemeChange = async (mode: ThemeMode) => {
+  const handleThemeChange = (mode: ThemeMode) => {
     setThemeMode(mode);
-    // Persist to user profile if logged in
-    if (user) {
-      try {
-        await dataService.updateProfile(user.id, { theme_preference: mode });
-      } catch (err) {
-        console.error('Failed to save theme preference:', err);
-      }
-    }
+    // Persistence to the profile is owned by <ThemeSync />, which watches
+    // themeMode. Writing here too would duplicate the request on every change
+    // and would still miss themes toggled from the header.
     onShowToast('success', 'Appearance Updated', `Theme set to ${mode === 'system' ? 'System' : mode === 'dark' ? 'Dark' : 'Light'} mode.`);
   };
 
@@ -96,9 +98,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
         interview_reminders: interviewReminders,
         follow_up_reminders: followUpReminders
       });
+      // Only reached when the database write actually succeeded — the data
+      // layer throws on error rather than reporting a silent failure.
       onShowToast('success', 'Preferences Saved', 'Your notification settings have been updated.');
     } catch (err: any) {
-      onShowToast('error', 'Save Failed', 'Could not save notification preferences.');
+      onShowToast(
+        'error',
+        'Save Failed',
+        err?.message || 'Could not save notification preferences.'
+      );
     } finally {
       setSavingPrefs(false);
     }
@@ -306,8 +314,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
         <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--rose-500)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <ShieldAlert size={20} /> Danger Zone
         </h3>
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-          Permanently delete your JobTrack account and clear all stored job applications and status history.
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+          Permanently erase all of your JobTrack data: your profile, every tracked job
+          application, all status history, and your notification preferences. This cannot
+          be undone.
+        </p>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+          <strong style={{ color: 'var(--text-heading)' }}>Your sign-in credentials are not removed by this action.</strong>{' '}
+          You will be signed out, and logging in again would start a fresh, empty account.
+          Removing the login itself requires a server-side step that is not available yet.
         </p>
 
         <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
@@ -316,7 +331,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
             className="btn btn-danger"
           >
             <Trash2 size={18} />
-            <span>Delete Account</span>
+            <span>Delete My Data</span>
           </button>
         </div>
       </div>
@@ -341,10 +356,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
               <AlertTriangle size={26} />
             </div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.5rem' }}>
-              Delete Account Permanently?
+              Delete all your JobTrack data?
             </h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.5 }}>
-              This will permanently wipe your profile, all tracked applications, and status logs. Type <strong>DELETE</strong> below to confirm.
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+              This permanently removes your profile, every tracked application, all status
+              history, and your notification preferences. It cannot be undone.
+            </p>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.5 }}>
+              Your login is <strong style={{ color: 'var(--text-heading)' }}>not</strong> deleted
+              and your email stays registered. Type <strong>DELETE</strong> below to confirm.
             </p>
 
             <input
@@ -373,7 +393,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
                 onClick={handleDeleteAccount}
                 style={{ flex: 1 }}
               >
-                {deleting ? 'Deleting...' : 'Permanently Delete'}
+                {deleting ? 'Deleting...' : 'Delete My Data'}
               </button>
             </div>
           </div>

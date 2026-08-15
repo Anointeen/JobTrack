@@ -18,20 +18,21 @@ export const StatCard: React.FC<StatCardProps> = ({
   subtitle,
   onClick
 }) => {
+  // `border` was computed for every colour but never applied to any element.
   const getColorStyles = () => {
     switch (color) {
       case 'indigo':
-        return { bg: 'var(--primary-50)', text: 'var(--primary-600)', border: 'var(--primary-200)' };
+        return { bg: 'var(--primary-50)', text: 'var(--primary-600)' };
       case 'emerald':
-        return { bg: 'var(--emerald-50)', text: 'var(--emerald-600)', border: 'var(--emerald-200)' };
+        return { bg: 'var(--emerald-50)', text: 'var(--emerald-600)' };
       case 'amber':
-        return { bg: 'var(--amber-50)', text: 'var(--amber-600)', border: 'var(--amber-200)' };
+        return { bg: 'var(--amber-50)', text: 'var(--amber-600)' };
       case 'rose':
-        return { bg: 'var(--rose-50)', text: 'var(--rose-600)', border: 'var(--rose-200)' };
+        return { bg: 'var(--rose-50)', text: 'var(--rose-600)' };
       case 'sky':
-        return { bg: 'var(--sky-50)', text: 'var(--sky-600)', border: 'var(--sky-200)' };
+        return { bg: 'var(--sky-50)', text: 'var(--sky-600)' };
       case 'purple':
-        return { bg: 'var(--purple-50)', text: 'var(--purple-600)', border: 'var(--purple-200)' };
+        return { bg: 'var(--purple-50)', text: 'var(--purple-600)' };
     }
   };
 

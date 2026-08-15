@@ -49,8 +49,8 @@ export const StatusPipeline: React.FC<StatusPipelineProps> = ({
                 alignItems: 'flex-start',
                 padding: '0.875rem',
                 borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--slate-200)',
-                backgroundColor: '#ffffff',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-surface)',
                 cursor: 'pointer',
                 textAlign: 'left',
                 transition: 'all var(--transition-fast)'

@@ -21,7 +21,7 @@ export const Badge: React.FC<BadgeProps> = ({ status, size = 'md' }) => {
   };
 
   return (
-    <span className={`badge ${getStatusClass(status)} ${size === 'sm' ? 'text-xs' : ''}`}>
+    <span className={`badge ${getStatusClass(status)}${size === 'sm' ? ' badge-sm' : ''}`}>
       <span className="badge-dot" />
       {status}
     </span>

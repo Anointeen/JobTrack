@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { dataService } from '../../lib/dataService';
-import { User, Briefcase, MapPin, Phone, Linkedin, Mail, Save, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { User, Briefcase, MapPin, Phone, Linkedin, Mail, Save, ShieldCheck } from 'lucide-react';
 
 interface ProfileViewProps {
   onShowToast: (type: 'success' | 'error', title: string, message: string) => void;
@@ -93,7 +93,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onShowToast }) => {
               justifyContent: 'center',
               fontWeight: 800,
               fontSize: '1.75rem',
-              border: '3px solid #ffffff',
+              border: '3px solid var(--bg-surface)',
               boxShadow: 'var(--shadow-md)'
             }}
           >

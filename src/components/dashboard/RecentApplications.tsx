@@ -1,7 +1,7 @@
 import React from 'react';
 import { Application } from '../../types';
 import { Badge } from '../common/Badge';
-import { Plus, ArrowRight, MapPin, Calendar, Briefcase, ExternalLink } from 'lucide-react';
+import { Plus, ArrowRight, MapPin, Calendar, Briefcase } from 'lucide-react';
 
 interface RecentApplicationsProps {
   applications: Application[];
@@ -103,7 +103,7 @@ export const RecentApplications: React.FC<RecentApplicationsProps> = ({
         </div>
       ) : (
         /* Recent Applications Table / List */
-        <div style={{ overflowX: 'auto' }}>
+        <div className="table-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--slate-200)', color: 'var(--slate-500)', fontSize: '0.78125rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>

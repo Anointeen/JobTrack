@@ -56,8 +56,8 @@ export const StatusHistoryTimeline: React.FC<StatusHistoryTimelineProps> = ({ hi
               width: '14px', 
               height: '14px', 
               borderRadius: '50%', 
-              backgroundColor: index === 0 ? 'var(--primary-600)' : 'var(--slate-300)',
-              border: '2px solid #ffffff',
+              backgroundColor: index === 0 ? 'var(--primary-600)' : 'var(--border-color)',
+              border: '2px solid var(--bg-surface)',
               boxShadow: '0 0 0 2px rgba(79, 70, 229, 0.2)'
             }} 
           />
