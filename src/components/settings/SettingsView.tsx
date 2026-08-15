@@ -3,14 +3,13 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { dataService } from '../../lib/dataService';
 import { ThemeMode } from '../../types';
+import { useToast } from '../../context/ToastContext';
 import { Lock, Bell, Trash2, ShieldAlert, Save, AlertTriangle, Sun, Moon, Monitor, Palette } from 'lucide-react';
 
-interface SettingsViewProps {
-  onShowToast: (type: 'success' | 'error', title: string, message: string) => void;
-}
-
-export const SettingsView: React.FC<SettingsViewProps> = ({ onShowToast }) => {
+export const SettingsView: React.FC = () => {
   const { user, updatePassword, logOut } = useAuth();
+  const { addToast } = useToast();
+  const onShowToast = addToast;
   const { themeMode, setThemeMode } = useTheme();
 
   // Password state

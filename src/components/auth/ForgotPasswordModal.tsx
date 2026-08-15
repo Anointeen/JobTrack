@@ -45,7 +45,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     >
       {!submitted ? (
         <form onSubmit={handleSubmit}>
-          <p style={{ fontSize: '0.875rem', color: 'var(--slate-600)', marginBottom: '1.25rem' }}>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
             Enter your account email address below and we'll send you instructions to reset your password.
           </p>
 
@@ -58,7 +58,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
             <div style={{ position: 'relative' }}>
               <Mail 
                 size={18} 
-                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} 
+                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} 
               />
               <input
                 type="email"
@@ -99,13 +99,13 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
             <CheckCircle size={32} />
           </div>
           <h4 style={{ fontSize: '1.125rem', marginBottom: '0.5rem' }}>Check Your Email</h4>
-          <p style={{ fontSize: '0.875rem', color: 'var(--slate-600)', marginBottom: '1.5rem' }}>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
             We've sent password reset instructions to <strong>{email}</strong>.
           </p>
         </div>
       )}
 
-      <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--slate-200)', textAlign: 'center' }}>
+      <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', textAlign: 'center' }}>
         <button
           type="button"
           className="btn btn-ghost btn-sm"

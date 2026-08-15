@@ -1,11 +1,12 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Briefcase, 
-  Calendar, 
-  FileText, 
-  User, 
-  Settings, 
+import { NavLink } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Briefcase,
+  Calendar,
+  FileText,
+  User,
+  Settings,
   LogOut,
   X,
   Sparkles
@@ -15,65 +16,57 @@ import { useAuth } from '../../context/AuthContext';
 export type NavTab = 'dashboard' | 'applications' | 'calendar' | 'documents' | 'profile' | 'settings';
 
 interface SidebarProps {
-  activeTab: NavTab;
-  onSelectTab: (tab: NavTab) => void;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  activeTab,
-  onSelectTab,
-  isOpenMobile,
-  onCloseMobile
-}) => {
+interface NavItem {
+  to: string;
+  label: string;
+  icon: any;
+  comingSoon?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/applications', label: 'Applications', icon: Briefcase },
+  { to: '/calendar', label: 'Calendar', icon: Calendar, comingSoon: true },
+  { to: '/documents', label: 'Documents', icon: FileText, comingSoon: true },
+  { to: '/profile', label: 'Profile', icon: User },
+  { to: '/settings', label: 'Settings', icon: Settings }
+];
+
+export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile }) => {
   const { logOut, profile, user } = useAuth();
 
-  const navItems: Array<{
-    id: NavTab;
-    label: string;
-    icon: any;
-    comingSoon?: boolean;
-  }> = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'applications', label: 'Applications', icon: Briefcase },
-    { id: 'calendar', label: 'Calendar', icon: Calendar, comingSoon: true },
-    { id: 'documents', label: 'Documents', icon: FileText, comingSoon: true },
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'settings', label: 'Settings', icon: Settings },
-  ];
-
-  const handleNavClick = (id: NavTab) => {
-    onSelectTab(id);
-    onCloseMobile();
-  };
-
   const content = (
-    <div 
-      style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        height: '100%', 
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
         backgroundColor: 'var(--bg-surface)',
         borderRight: '1px solid var(--border-color)',
         width: 'var(--sidebar-width)',
-        padding: '1.25rem 1rem'
+        padding: '1.25rem 1rem',
+        overflowY: 'auto'
       }}
     >
       {/* Brand Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', paddingLeft: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div 
-            style={{ 
-              width: '38px', 
-              height: '38px', 
-              borderRadius: '10px', 
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
               backgroundColor: 'var(--primary-600)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff',
-              boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)'
+              boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)',
+              flexShrink: 0
             }}
           >
             <Briefcase size={22} />
@@ -89,25 +82,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Mobile close button */}
-        <button 
-          className="btn btn-ghost btn-sm mobile-only" 
+        <button
+          className="btn btn-ghost btn-sm mobile-only"
           onClick={onCloseMobile}
+          aria-label="Close navigation menu"
           style={{ padding: '4px', borderRadius: '50%' }}
         >
           <X size={20} />
         </button>
       </div>
 
-      {/* Navigation Links */}
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        {navItems.map(item => {
+      {/* Navigation Links — active state is derived from the URL by NavLink. */}
+      <nav aria-label="Main navigation" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+        {NAV_ITEMS.map(item => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
           return (
-            <button
-              key={item.id}
-              onClick={() => handleNavClick(item.id)}
-              style={{
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={onCloseMobile}
+              className="sidebar-link"
+              style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -120,35 +115,40 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 fontWeight: isActive ? 600 : 500,
                 fontSize: '0.9375rem',
                 cursor: 'pointer',
+                textDecoration: 'none',
                 transition: 'all var(--transition-fast)'
-              }}
+              })}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Icon size={20} color={isActive ? 'var(--primary-600)' : 'var(--text-subtle)'} />
-                <span>{item.label}</span>
-              </div>
-              {item.comingSoon && (
-                <span 
-                  style={{ 
-                    fontSize: '0.6875rem', 
-                    fontWeight: 700, 
-                    backgroundColor: 'var(--bg-subtle)', 
-                    color: 'var(--text-subtle)',
-                    padding: '2px 6px',
-                    borderRadius: 'var(--radius-full)'
-                  }}
-                >
-                  Soon
-                </span>
+              {({ isActive }) => (
+                <>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Icon size={20} color={isActive ? 'var(--primary-600)' : 'var(--text-subtle)'} />
+                    <span>{item.label}</span>
+                  </span>
+                  {item.comingSoon && (
+                    <span
+                      style={{
+                        fontSize: '0.6875rem',
+                        fontWeight: 700,
+                        backgroundColor: 'var(--bg-subtle)',
+                        color: 'var(--text-subtle)',
+                        padding: '2px 6px',
+                        borderRadius: 'var(--radius-full)'
+                      }}
+                    >
+                      Soon
+                    </span>
+                  )}
+                </>
               )}
-            </button>
+            </NavLink>
           );
         })}
       </nav>
 
       {/* Career Vision Teaser Box */}
-      <div 
-        style={{ 
+      <div
+        style={{
           margin: '1rem 0',
           padding: '1rem',
           borderRadius: 'var(--radius-md)',
@@ -173,11 +173,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* User Footer Profile & Log Out */}
       <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', paddingLeft: '0.25rem' }}>
-          <div 
-            style={{ 
-              width: '36px', 
-              height: '36px', 
-              borderRadius: '50%', 
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
               backgroundColor: 'var(--primary-100)',
               color: 'var(--primary-600)',
               display: 'flex',
@@ -219,9 +219,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {content}
       </div>
 
-      {/* Mobile Drawer Backdrop */}
+      {/* Mobile Drawer */}
       {isOpenMobile && (
-        <div 
+        <div
           className="mobile-backdrop"
           onClick={onCloseMobile}
           style={{
@@ -231,7 +231,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             zIndex: 999
           }}
         >
-          <div 
+          <div
+            role="dialog"
+            aria-label="Navigation menu"
             onClick={e => e.stopPropagation()}
             style={{ height: '100%', width: 'var(--sidebar-width)' }}
           >

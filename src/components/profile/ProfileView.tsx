@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { dataService } from '../../lib/dataService';
+import { useToast } from '../../context/ToastContext';
 import { User, Briefcase, MapPin, Phone, Linkedin, Mail, Save, ShieldCheck } from 'lucide-react';
 
-interface ProfileViewProps {
-  onShowToast: (type: 'success' | 'error', title: string, message: string) => void;
-}
-
-export const ProfileView: React.FC<ProfileViewProps> = ({ onShowToast }) => {
+export const ProfileView: React.FC = () => {
   const { user, profile, refreshProfile } = useAuth();
+  const { addToast } = useToast();
+  const onShowToast = addToast;
 
   const [fullName, setFullName] = useState('');
   const [professionalTitle, setProfessionalTitle] = useState('');
@@ -60,10 +59,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onShowToast }) => {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--slate-900)' }}>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-heading)' }}>
           User Profile
         </h1>
-        <p style={{ fontSize: '0.9375rem', color: 'var(--slate-600)', marginTop: '2px' }}>
+        <p style={{ fontSize: '0.9375rem', color: 'var(--text-muted)', marginTop: '2px' }}>
           Manage your personal information and career credentials.
         </p>
       </div>
@@ -76,7 +75,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onShowToast }) => {
             alignItems: 'center', 
             gap: '1.25rem', 
             paddingBottom: '1.5rem', 
-            borderBottom: '1px solid var(--slate-200)',
+            borderBottom: '1px solid var(--border-color)',
             marginBottom: '1.5rem',
             flexWrap: 'wrap'
           }}
@@ -101,13 +100,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onShowToast }) => {
           </div>
 
           <div style={{ flex: 1 }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--slate-900)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-heading)' }}>
               {fullName || 'Job Tracker User'}
             </h3>
             <p style={{ fontSize: '0.875rem', color: 'var(--primary-600)', fontWeight: 600, marginTop: '2px' }}>
               {professionalTitle || 'Career Management Member'}
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '6px', fontSize: '0.8125rem', color: 'var(--slate-500)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '6px', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
               <ShieldCheck size={16} color="var(--emerald-600)" />
               <span>Isolated User Data active</span>
             </div>
@@ -119,16 +118,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onShowToast }) => {
           <div className="form-group" style={{ marginBottom: '1.25rem' }}>
             <label className="form-label">Email Address (Read-only)</label>
             <div style={{ position: 'relative' }}>
-              <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+              <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="email"
                 className="input-control"
                 value={user?.email || ''}
                 disabled
-                style={{ paddingLeft: '2.375rem', backgroundColor: 'var(--slate-100)', cursor: 'not-allowed', color: 'var(--slate-600)' }}
+                style={{ paddingLeft: '2.375rem', backgroundColor: 'var(--bg-subtle)', cursor: 'not-allowed', color: 'var(--text-muted)' }}
               />
             </div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '4px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
               Your account email is managed by your authentication settings.
             </span>
           </div>
@@ -139,7 +138,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onShowToast }) => {
                 Full Name <span className="required">*</span>
               </label>
               <div style={{ position: 'relative' }}>
-                <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+                <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                 <input
                   type="text"
                   className="input-control"
@@ -155,7 +154,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onShowToast }) => {
             <div className="form-group">
               <label className="form-label">Professional Title</label>
               <div style={{ position: 'relative' }}>
-                <Briefcase size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+                <Briefcase size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                 <input
                   type="text"
                   className="input-control"
@@ -172,7 +171,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onShowToast }) => {
             <div className="form-group">
               <label className="form-label">Location</label>
               <div style={{ position: 'relative' }}>
-                <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+                <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                 <input
                   type="text"
                   className="input-control"
@@ -187,7 +186,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onShowToast }) => {
             <div className="form-group">
               <label className="form-label">Phone Number</label>
               <div style={{ position: 'relative' }}>
-                <Phone size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+                <Phone size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                 <input
                   type="tel"
                   className="input-control"
@@ -203,7 +202,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onShowToast }) => {
           <div className="form-group">
             <label className="form-label">LinkedIn Profile URL</label>
             <div style={{ position: 'relative' }}>
-              <Linkedin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+              <Linkedin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="url"
                 className="input-control"

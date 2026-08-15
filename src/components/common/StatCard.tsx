@@ -50,14 +50,14 @@ export const StatCard: React.FC<StatCardProps> = ({
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--slate-500)' }}>
+          <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted)' }}>
             {title}
           </p>
-          <p style={{ fontSize: '1.875rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--slate-900)' }}>
+          <p style={{ fontSize: '1.875rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-heading)' }}>
             {value}
           </p>
           {subtitle && (
-            <p style={{ fontSize: '0.8125rem', color: 'var(--slate-500)', marginTop: '0.25rem' }}>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
               {subtitle}
             </p>
           )}

@@ -20,10 +20,10 @@ export const SuccessRateCard: React.FC<SuccessRateCardProps> = ({
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.125rem', color: 'var(--slate-900)' }}>
+            <h3 style={{ fontSize: '1.125rem', color: 'var(--text-heading)' }}>
               Application Success Rate
             </h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--slate-500)', marginTop: '2px' }}>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px' }}>
               Offers relative to total submitted applications
             </p>
           </div>
@@ -47,17 +47,17 @@ export const SuccessRateCard: React.FC<SuccessRateCardProps> = ({
           <div 
             style={{ 
               padding: '1.5rem 1rem', 
-              backgroundColor: 'var(--slate-50)', 
+              backgroundColor: 'var(--bg-subtle)', 
               borderRadius: 'var(--radius-md)', 
               textAlign: 'center',
-              border: '1px dashed var(--slate-300)'
+              border: '1px dashed var(--border-color)'
             }}
           >
-            <Percent size={28} color="var(--slate-400)" style={{ marginBottom: '0.5rem' }} />
-            <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--slate-700)' }}>
+            <Percent size={28} color="var(--text-subtle)" style={{ marginBottom: '0.5rem' }} />
+            <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)' }}>
               Start adding applications to see your success rate.
             </p>
-            <p style={{ fontSize: '0.78125rem', color: 'var(--slate-500)', marginTop: '4px' }}>
+            <p style={{ fontSize: '0.78125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
               Your conversion percentage will calculate automatically as your job search progresses.
             </p>
           </div>
@@ -67,7 +67,7 @@ export const SuccessRateCard: React.FC<SuccessRateCardProps> = ({
               <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--emerald-600)', lineHeight: 1 }}>
                 {rate}%
               </span>
-              <span style={{ fontSize: '0.875rem', color: 'var(--slate-500)', fontWeight: 500 }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                 ({totalOffers} offer{totalOffers !== 1 ? 's' : ''} / {totalApplications} total)
               </span>
             </div>
@@ -76,7 +76,7 @@ export const SuccessRateCard: React.FC<SuccessRateCardProps> = ({
             <div 
               style={{ 
                 height: '8px', 
-                backgroundColor: 'var(--slate-100)', 
+                backgroundColor: 'var(--border-subtle)', 
                 borderRadius: 'var(--radius-full)', 
                 overflow: 'hidden',
                 margin: '1rem 0'
@@ -93,7 +93,7 @@ export const SuccessRateCard: React.FC<SuccessRateCardProps> = ({
               />
             </div>
             
-            <p style={{ fontSize: '0.8125rem', color: 'var(--slate-600)' }}>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
               {parseFloat(rate) >= 15 
                 ? '🔥 Outstanding conversion rate! Keep up the momentum.' 
                 : parseFloat(rate) > 0 

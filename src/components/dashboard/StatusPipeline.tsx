@@ -19,10 +19,10 @@ export const StatusPipeline: React.FC<StatusPipelineProps> = ({
     <div className="card" style={{ height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
         <div>
-          <h3 style={{ fontSize: '1.125rem', color: 'var(--slate-900)' }}>
+          <h3 style={{ fontSize: '1.125rem', color: 'var(--text-heading)' }}>
             Application Status Pipeline
           </h3>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--slate-500)', marginTop: '2px' }}>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px' }}>
             Click any status to filter your applications view
           </p>
         </div>
@@ -59,10 +59,10 @@ export const StatusPipeline: React.FC<StatusPipelineProps> = ({
             >
               <Badge status={st} size="sm" />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', width: '100%', marginTop: '0.75rem' }}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--slate-900)' }}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-heading)' }}>
                   {count}
                 </span>
-                <ChevronRight size={16} color="var(--slate-400)" />
+                <ChevronRight size={16} color="var(--text-subtle)" />
               </div>
             </button>
           );
@@ -76,11 +76,11 @@ export const StatusPipeline: React.FC<StatusPipelineProps> = ({
           alignItems: 'center', 
           gap: '1rem', 
           paddingTop: '0.875rem', 
-          borderTop: '1px solid var(--slate-100)',
+          borderTop: '1px solid var(--border-subtle)',
           flexWrap: 'wrap'
         }}
       >
-        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--slate-500)' }}>
+        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-muted)' }}>
           Outcomes:
         </span>
         {outcomeStatuses.map(st => {
@@ -95,14 +95,14 @@ export const StatusPipeline: React.FC<StatusPipelineProps> = ({
                 gap: '0.5rem',
                 padding: '0.375rem 0.75rem',
                 borderRadius: 'var(--radius-full)',
-                border: '1px solid var(--slate-200)',
-                backgroundColor: 'var(--slate-50)',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-subtle)',
                 cursor: 'pointer',
                 fontSize: '0.8125rem'
               }}
             >
               <Badge status={st} size="sm" />
-              <span style={{ fontWeight: 700, color: 'var(--slate-700)' }}>{count}</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{count}</span>
             </button>
           );
         })}

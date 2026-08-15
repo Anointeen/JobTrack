@@ -84,7 +84,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <h3 style={{ fontSize: '1.25rem' }}>
           {mode === 'signup' ? 'Start Tracking Your Career' : 'Log In to JobTrack'}
         </h3>
-        <p style={{ fontSize: '0.875rem', color: 'var(--slate-500)', marginTop: '4px' }}>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '4px' }}>
           {mode === 'signup' 
             ? 'Organize applications, prepare interviews, and boost your job search.' 
             : 'Access your job tracking dashboard and performance stats.'}
@@ -120,7 +120,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div style={{ position: 'relative' }}>
               <UserIcon 
                 size={18} 
-                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} 
+                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} 
               />
               <input
                 type="text"
@@ -142,7 +142,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div style={{ position: 'relative' }}>
             <Mail 
               size={18} 
-              style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} 
+              style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} 
             />
             <input
               type="email"
@@ -178,7 +178,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div style={{ position: 'relative' }}>
             <Lock 
               size={18} 
-              style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} 
+              style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} 
             />
             <input
               type="password"
@@ -213,10 +213,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         style={{ 
           marginTop: '1.5rem', 
           paddingTop: '1rem', 
-          borderTop: '1px solid var(--slate-200)', 
+          borderTop: '1px solid var(--border-color)', 
           textAlign: 'center',
           fontSize: '0.875rem',
-          color: 'var(--slate-600)'
+          color: 'var(--text-muted)'
         }}
       >
         {mode === 'signup' ? (

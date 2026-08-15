@@ -87,7 +87,12 @@ export interface UserSession {
   email_verified?: boolean;
 }
 
-export type SortOption = 'newest' | 'oldest' | 'recently_updated' | 'company';
+export type SortOption =
+  | 'newest'
+  | 'oldest'
+  | 'recently_updated'
+  | 'deadline'
+  | 'company';
 
 export interface ApplicationFilterOptions {
   searchQuery: string;

@@ -87,7 +87,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
           <Rocket size={28} />
         </div>
         <h3 style={{ fontSize: '1.375rem' }}>Let's Set Up Your Profile</h3>
-        <p style={{ fontSize: '0.875rem', color: 'var(--slate-500)', marginTop: '4px' }}>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '4px' }}>
           Tailor your career tracking workspace to get the most out of your job search.
         </p>
       </div>
@@ -98,7 +98,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
             Full Name <span className="required">*</span>
           </label>
           <div style={{ position: 'relative' }}>
-            <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+            <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
             <input
               type="text"
               className="input-control"
@@ -115,7 +115,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
           <div className="form-group">
             <label className="form-label">Professional Title</label>
             <div style={{ position: 'relative' }}>
-              <Briefcase size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+              <Briefcase size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="text"
                 className="input-control"
@@ -130,7 +130,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
           <div className="form-group">
             <label className="form-label">Location</label>
             <div style={{ position: 'relative' }}>
-              <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+              <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="text"
                 className="input-control"
@@ -144,9 +144,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         </div>
 
         <div className="form-group">
-          <label className="form-label">Phone Number <span style={{ color: 'var(--slate-400)', fontWeight: 400 }}>(Optional)</span></label>
+          <label className="form-label">Phone Number <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span></label>
           <div style={{ position: 'relative' }}>
-            <Phone size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+            <Phone size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
             <input
               type="tel"
               className="input-control"
@@ -159,9 +159,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         </div>
 
         <div className="form-group">
-          <label className="form-label">LinkedIn Profile URL <span style={{ color: 'var(--slate-400)', fontWeight: 400 }}>(Optional)</span></label>
+          <label className="form-label">LinkedIn Profile URL <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span></label>
           <div style={{ position: 'relative' }}>
-            <Linkedin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+            <Linkedin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
             <input
               type="url"
               className="input-control"

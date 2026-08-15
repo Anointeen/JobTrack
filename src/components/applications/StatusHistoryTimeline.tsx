@@ -25,7 +25,7 @@ export const StatusHistoryTimeline: React.FC<StatusHistoryTimelineProps> = ({ hi
 
   if (!history || history.length === 0) {
     return (
-      <p style={{ fontSize: '0.875rem', color: 'var(--slate-500)', fontStyle: 'italic' }}>
+      <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
         No status history recorded yet.
       </p>
     );
@@ -41,7 +41,7 @@ export const StatusHistoryTimeline: React.FC<StatusHistoryTimelineProps> = ({ hi
           top: '6px', 
           bottom: '6px', 
           width: '2px', 
-          backgroundColor: 'var(--slate-200)' 
+          backgroundColor: 'var(--border-color)' 
         }} 
       />
 
@@ -62,25 +62,25 @@ export const StatusHistoryTimeline: React.FC<StatusHistoryTimelineProps> = ({ hi
             }} 
           />
 
-          <div style={{ background: 'var(--slate-50)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+          <div style={{ background: 'var(--bg-subtle)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {item.previous_status && (
                   <>
                     <Badge status={item.previous_status} size="sm" />
-                    <ArrowRight size={14} color="var(--slate-400)" />
+                    <ArrowRight size={14} color="var(--text-subtle)" />
                   </>
                 )}
                 <Badge status={item.new_status} size="sm" />
               </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <Clock size={12} />
                 {formatDate(item.created_at)}
               </span>
             </div>
 
             {item.note && (
-              <p style={{ fontSize: '0.8125rem', color: 'var(--slate-700)', marginTop: '0.5rem', lineHeight: 1.4 }}>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-main)', marginTop: '0.5rem', lineHeight: 1.4 }}>
                 {item.note}
               </p>
             )}

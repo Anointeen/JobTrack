@@ -267,6 +267,39 @@ button, input, select, textarea {
   background: var(--slate-400);
 }
 
+/* Visually hidden, but still announced by screen readers. Used for labels and
+   table captions that would be redundant sighted-side. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Keyboard focus must always be visible. :focus-visible keeps the ring off
+   mouse clicks while guaranteeing it for keyboard and assistive tech. */
+:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Router links used as buttons should not carry underlines. */
+a.btn {
+  text-decoration: none;
+}
+
+/* Sidebar links are <a> elements now; keep hover consistent with the old
+   button treatment without overriding the active state set inline. */
+.sidebar-link:hover {
+  background-color: var(--bg-surface-hover) !important;
+}
+
 /* Card & Surface Utilities */
 .card {
   background: var(--bg-surface);

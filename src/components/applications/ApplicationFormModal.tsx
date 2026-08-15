@@ -188,7 +188,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
               Company Name <span className="required">*</span>
             </label>
             <div style={{ position: 'relative' }}>
-              <Building2 size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+              <Building2 size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="text"
                 className={`input-control ${errors.companyName ? 'input-error' : ''}`}
@@ -207,7 +207,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
               Job Title <span className="required">*</span>
             </label>
             <div style={{ position: 'relative' }}>
-              <Briefcase size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+              <Briefcase size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="text"
                 className={`input-control ${errors.jobTitle ? 'input-error' : ''}`}
@@ -243,7 +243,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
               Application Date <span className="required">*</span>
             </label>
             <div style={{ position: 'relative' }}>
-              <Calendar size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+              <Calendar size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="date"
                 className="input-control"
@@ -257,8 +257,8 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
         </div>
 
         {/* Optional Job Information */}
-        <hr style={{ border: 'none', borderTop: '1px solid var(--slate-200)', margin: '1.25rem 0' }} />
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--slate-700)', marginBottom: '0.75rem' }}>
+        <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '1.25rem 0' }} />
+        <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem' }}>
           Job & Location Details (Optional)
         </h4>
 
@@ -266,7 +266,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           <div className="form-group">
             <label className="form-label">Location</label>
             <div style={{ position: 'relative' }}>
-              <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+              <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="text"
                 className="input-control"
@@ -295,7 +295,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
         <div className="form-group">
           <label className="form-label">Job Posting URL</label>
           <div style={{ position: 'relative' }}>
-            <LinkIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+            <LinkIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
             <input
               type="url"
               className={`input-control ${errors.jobPostingUrl ? 'input-error' : ''}`}
@@ -349,8 +349,8 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
         </div>
 
         {/* Recruiter Details */}
-        <hr style={{ border: 'none', borderTop: '1px solid var(--slate-200)', margin: '1.25rem 0' }} />
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--slate-700)', marginBottom: '0.75rem' }}>
+        <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '1.25rem 0' }} />
+        <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem' }}>
           Recruiter Contact Info (Optional)
         </h4>
 
@@ -358,7 +358,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           <div className="form-group">
             <label className="form-label">Recruiter Name</label>
             <div style={{ position: 'relative' }}>
-              <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+              <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="text"
                 className="input-control"
@@ -373,7 +373,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           <div className="form-group">
             <label className="form-label">Recruiter Email</label>
             <div style={{ position: 'relative' }}>
-              <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+              <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
                 type="email"
                 className={`input-control ${errors.recruiterEmail ? 'input-error' : ''}`}
@@ -389,15 +389,24 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
 
         {/* Notes */}
         <div className="form-group" style={{ marginTop: '0.5rem' }}>
-          <label className="form-label">Notes & Prep Remarks</label>
+          <label className="form-label" htmlFor="application-notes">Notes &amp; Prep Remarks</label>
           <textarea
+            id="application-notes"
             className="input-control"
-            rows={3}
-            placeholder="Add interview preparation notes, referral contact info, or assessment details..."
+            rows={6}
+            placeholder={
+              'Add interview preparation notes, referral contacts, or assessment details.\n\n' +
+              'Line breaks are preserved.'
+            }
             value={notes}
             onChange={e => setNotes(e.target.value)}
-            style={{ resize: 'vertical' }}
+            style={{ resize: 'vertical', minHeight: '120px', lineHeight: 1.5 }}
           />
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
+            {notes.trim().length > 0
+              ? `${notes.trim().length} character${notes.trim().length === 1 ? '' : 's'}`
+              : 'Optional — your notes stay private to your account.'}
+          </span>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>

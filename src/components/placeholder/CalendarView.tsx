@@ -5,10 +5,10 @@ export const CalendarView: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--slate-900)' }}>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-heading)' }}>
           Interview & Deadline Calendar
         </h1>
-        <p style={{ fontSize: '0.9375rem', color: 'var(--slate-600)', marginTop: '2px' }}>
+        <p style={{ fontSize: '0.9375rem', color: 'var(--text-muted)', marginTop: '2px' }}>
           Schedule interviews, track technical assessments, and never miss an application deadline.
         </p>
       </div>
@@ -60,11 +60,11 @@ export const CalendarView: React.FC = () => {
           <span>Feature Coming Soon in Next Release</span>
         </div>
 
-        <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '0.5rem' }}>
+        <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.5rem' }}>
           Smart Calendar Integration
         </h3>
 
-        <p style={{ fontSize: '0.9375rem', color: 'var(--slate-600)', maxWidth: '520px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '0.9375rem', color: 'var(--text-muted)', maxWidth: '520px', lineHeight: 1.6 }}>
           We are currently building seamless Google Calendar and Outlook syncing so your interview appointments, coding challenges, and recruiter follow-ups show up automatically.
         </p>
       </div>

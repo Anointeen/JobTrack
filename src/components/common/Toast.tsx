@@ -40,8 +40,8 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
         {getIcon()}
       </div>
       <div style={{ flex: 1 }}>
-        <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--slate-900)' }}>{toast.title}</h4>
-        <p style={{ fontSize: '0.84375rem', color: 'var(--slate-600)', marginTop: '2px' }}>{toast.message}</p>
+        <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-heading)' }}>{toast.title}</h4>
+        <p style={{ fontSize: '0.84375rem', color: 'var(--text-muted)', marginTop: '2px' }}>{toast.message}</p>
       </div>
       <button 
         className="btn btn-ghost btn-sm" 

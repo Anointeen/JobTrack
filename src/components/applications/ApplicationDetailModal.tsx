@@ -174,7 +174,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       {/* Header Info */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--slate-900)' }}>
+          <h2 style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-heading)' }}>
             {application.job_title}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '4px' }}>
@@ -224,7 +224,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Status Change Note <span style={{ color: 'var(--slate-400)', fontWeight: 400 }}>(Optional)</span></label>
+            <label className="form-label">Status Change Note <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span></label>
             <input
               type="text"
               className="input-control"
@@ -288,7 +288,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
         {application.job_posting_url && (
           <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-            <span style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--slate-500)' }}>Job Posting URL</span>
+            <span style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--text-muted)' }}>Job Posting URL</span>
             <div style={{ marginTop: '4px' }}>
               <a 
                 href={application.job_posting_url} 
@@ -304,8 +304,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
         {(application.recruiter_name || application.recruiter_email) && (
           <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-            <span style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--slate-500)' }}>Recruiter Contact</span>
-            <div style={{ marginTop: '4px', fontSize: '0.875rem', color: 'var(--slate-900)' }}>
+            <span style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--text-muted)' }}>Recruiter Contact</span>
+            <div style={{ marginTop: '4px', fontSize: '0.875rem', color: 'var(--text-heading)' }}>
               {application.recruiter_name && <div><strong>{application.recruiter_name}</strong></div>}
               {application.recruiter_email && (
                 <a href={`mailto:${application.recruiter_email}`} style={{ fontSize: '0.8125rem', color: 'var(--primary-600)' }}>
@@ -318,11 +318,21 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       </div>
 
       {/* Notes Section */}
+      <div style={{ marginBottom: '1.75rem' }}>
+        <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <FileText size={18} color="var(--text-muted)" /> Application Notes
+        </h4>
+
+        {!application.notes && (
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-subtle)', fontStyle: 'italic', lineHeight: 1.5 }}>
+            No notes yet — use “Edit Application” to add interview prep, referral contacts or
+            assessment details.
+          </p>
+        )}
+      </div>
+
       {application.notes && (
-        <div style={{ marginBottom: '1.75rem' }}>
-          <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--slate-900)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FileText size={18} color="var(--slate-500)" /> Application Notes
-          </h4>
+        <div style={{ marginTop: '-1.25rem', marginBottom: '1.75rem' }}>
           <div 
             style={{ 
               padding: '1rem',
@@ -342,8 +352,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
       {/* Status History Section */}
       <div>
-        <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--slate-900)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Clock size={18} color="var(--slate-500)" /> Status Progression & History Log
+        <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Clock size={18} color="var(--text-muted)" /> Status Progression & History Log
         </h4>
         {loadingHistory ? (
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
