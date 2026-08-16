@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { Skeleton } from '../common/Skeleton';
 
 /**
  * Chrome for the authenticated area.
@@ -26,7 +27,20 @@ export const AppLayout: React.FC = () => {
         <Header onOpenMobileSidebar={() => setIsOpenMobile(true)} />
 
         <main className="main-content" id="main-content">
-          <Outlet />
+          {/* Routed screens are lazy-loaded. Falling back inside <main> keeps
+              the sidebar and header on screen while a chunk arrives, so
+              navigation never flashes a full-page loader. */}
+          <Suspense
+            fallback={
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <Skeleton height="40px" width="220px" borderRadius="var(--radius-md)" />
+                <Skeleton height="110px" borderRadius="var(--radius-lg)" />
+                <Skeleton height="220px" borderRadius="var(--radius-lg)" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
 
         <Footer />

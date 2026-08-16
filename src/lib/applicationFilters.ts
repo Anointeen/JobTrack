@@ -150,7 +150,7 @@ export const startOfToday = (): number => {
  * Full timestamps carry their own offset, so they are parsed normally and then
  * floored to local midnight.
  */
-const parseLocalDayMs = (value?: string | null): number | null => {
+export const parseLocalDayMs = (value?: string | null): number | null => {
   if (!value) return null;
 
   const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());

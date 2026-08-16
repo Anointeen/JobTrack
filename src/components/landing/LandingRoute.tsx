@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { LandingPage } from './LandingPage';
 import { AuthModal } from '../auth/AuthModal';
 import { ForgotPasswordModal } from '../auth/ForgotPasswordModal';
-import { FullScreenLoader } from '../layout/ProtectedLayout';
+import { FullScreenLoader } from '../common/FullScreenLoader';
 
 interface LocationState {
   from?: { pathname: string; search?: string };

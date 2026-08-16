@@ -6,21 +6,7 @@ import { ApplicationsProvider } from '../../context/ApplicationsContext';
 import { ApplicationFormProvider } from '../../context/ApplicationFormContext';
 import { OnboardingModal } from '../auth/OnboardingModal';
 import { AppLayout } from './AppLayout';
-import { Skeleton } from '../common/Skeleton';
-
-export const FullScreenLoader: React.FC = () => (
-  <div
-    style={{
-      display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center',
-      backgroundColor: 'var(--bg-app)', padding: '2rem'
-    }}
-  >
-    <div style={{ maxWidth: '400px', width: '100%', textAlign: 'center' }}>
-      <Skeleton height="40px" width="180px" borderRadius="10px" className="mb-4" />
-      <Skeleton height="20px" width="100%" borderRadius="6px" />
-    </div>
-  </div>
-);
+import { FullScreenLoader } from '../common/FullScreenLoader';
 
 /**
  * Gate for every authenticated route.

@@ -4,6 +4,7 @@ import {
   RESPONDED_STATUSES,
   SUBMITTED_STATUSES,
   parseDateMs,
+  parseLocalDayMs,
   startOfToday,
   daysUntil
 } from './applicationFilters';
@@ -45,9 +46,12 @@ export const computeDashboardMetrics = (applications: Application[]): DashboardM
   }
 
   const today = startOfToday();
+  // parseLocalDayMs, not parseDateMs: `application_date` is a date-only string,
+  // and parsing it as UTC midnight while comparing against local midnight
+  // shifts the window boundary by a day for users offset from UTC.
   const countSince = (days: number) =>
     applications.filter(a => {
-      const ms = parseDateMs(a.application_date) ?? parseDateMs(a.created_at);
+      const ms = parseLocalDayMs(a.application_date) ?? parseLocalDayMs(a.created_at);
       return ms !== null && ms >= today - days * DAY_MS;
     }).length;
 
@@ -98,7 +102,9 @@ export const computeAverageDaysToInterview = (
 ): { averageDays: number | null; sampleSize: number } => {
   const appliedAtById = new Map<string, number>();
   for (const app of applications) {
-    const ms = parseDateMs(app.application_date) ?? parseDateMs(app.created_at);
+    // Local midnight, so the elapsed-days figure does not pick up the viewer's
+    // UTC offset as a systematic bias.
+    const ms = parseLocalDayMs(app.application_date) ?? parseLocalDayMs(app.created_at);
     if (ms !== null) appliedAtById.set(app.id, ms);
   }
 
