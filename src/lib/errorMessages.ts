@@ -114,3 +114,37 @@ export const friendlyDatabaseError = (
 const looksInternal = (message: string): boolean =>
   /violates|constraint|relation |column |syntax error|duplicate key|permission denied for|null value in/i
     .test(message);
+
+/**
+ * Sanitises an authentication error for display.
+ *
+ * Two concerns beyond readability:
+ *
+ *  1. Account enumeration. When email confirmation is disabled, Supabase
+ *     answers a duplicate sign-up with "User already registered", which
+ *     confirms that an address has an account. That is rewritten to a neutral
+ *     sentence which is still actionable. (With confirmation enabled Supabase
+ *     obfuscates this itself, returning a normal success shape — another
+ *     reason the checklist recommends enabling it.)
+ *  2. Internal detail. Anything resembling database or infrastructure output is
+ *     replaced rather than shown.
+ */
+export const friendlyAuthError = (
+  error: unknown,
+  fallback = 'We could not complete that request. Please try again.'
+): string => {
+  const raw = typeof (error as { message?: string })?.message === 'string'
+    ? (error as { message: string }).message
+    : '';
+
+  if (!raw) return fallback;
+
+  if (/already registered|already exists|user already/i.test(raw)) {
+    return 'We could not create an account with those details. If you already ' +
+      'have an account, try logging in or resetting your password.';
+  }
+
+  if (looksInternal(raw)) return fallback;
+
+  return raw;
+};

@@ -143,6 +143,18 @@ export interface UserSession {
   email_verified?: boolean;
 }
 
+/**
+ * Result of a successful sign-up.
+ *
+ * Supabase returns a session only when the project does not require email
+ * confirmation. Both outcomes are successes and must be reported as such — the
+ * confirmation case used to be thrown as an Error, which surfaced a success
+ * message inside the modal's red error banner.
+ */
+export type SignUpOutcome =
+  | { status: 'active_session' }
+  | { status: 'confirmation_required'; email: string };
+
 export type SortOption =
   | 'newest'
   | 'oldest'

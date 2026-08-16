@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '../common/Modal';
 import { useAuth } from '../../context/AuthContext';
-import { Briefcase, Lock, Mail, User as UserIcon, ArrowRight, AlertCircle } from 'lucide-react';
+import { Briefcase, Lock, Mail, User as UserIcon, ArrowRight, AlertCircle, MailCheck } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -22,6 +22,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  /**
+   * Set when sign-up succeeded but the project requires email confirmation.
+   * This is a success state and is rendered as one — it used to be thrown as an
+   * Error and shown in the red banner below.
+   */
+  const [confirmationSentTo, setConfirmationSentTo] = useState<string | null>(null);
 
   const { signUp, logIn } = useAuth();
 
@@ -42,13 +48,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       setSubmitting(true);
       if (mode === 'signup') {
-        await signUp(email, password, fullName);
+        const outcome = await signUp(email, password, fullName);
+        if (outcome.status === 'confirmation_required') {
+          // Success, but there is no session yet. Stay open and show the
+          // confirmation state rather than closing into a signed-out app.
+          setConfirmationSentTo(outcome.email);
+          return;
+        }
       } else {
         await logIn(email, password);
       }
       onClose();
     } catch (err: any) {
-      setErrorMsg(err.message || 'An error occurred during authentication. Please try again.');
+      setErrorMsg(err?.message || 'An error occurred during authentication. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -57,7 +69,66 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const switchMode = (newMode: 'login' | 'signup') => {
     setMode(newMode);
     setErrorMsg('');
+    setConfirmationSentTo(null);
   };
+
+  const handleClose = () => {
+    setConfirmationSentTo(null);
+    setErrorMsg('');
+    onClose();
+  };
+
+  // --- Success state: confirmation email sent -------------------------------
+  if (confirmationSentTo) {
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Confirm your email" maxWidth="460px">
+        <div role="status" style={{ textAlign: 'center', padding: '0.5rem 0 1rem 0' }}>
+          <div
+            style={{
+              width: '56px', height: '56px', borderRadius: '50%',
+              backgroundColor: 'var(--emerald-50)', color: 'var(--emerald-600)',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: '1rem'
+            }}
+          >
+            <MailCheck size={30} aria-hidden="true" />
+          </div>
+
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: 'var(--text-heading)' }}>
+            Account created
+          </h3>
+
+          <p style={{ fontSize: '0.9375rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '1rem' }}>
+            We've sent a confirmation link to{' '}
+            <strong style={{ color: 'var(--text-heading)', overflowWrap: 'anywhere' }}>
+              {confirmationSentTo}
+            </strong>.
+          </p>
+
+          <ol
+            style={{
+              textAlign: 'left', margin: '0 auto 1.5rem auto', maxWidth: '340px',
+              paddingLeft: '1.25rem', fontSize: '0.875rem', color: 'var(--text-muted)',
+              display: 'flex', flexDirection: 'column', gap: '0.375rem', lineHeight: 1.5
+            }}
+          >
+            <li>Open the email and select the confirmation link.</li>
+            <li>Come back here and log in.</li>
+            <li>No email after a few minutes? Check your spam folder.</li>
+          </ol>
+
+          <button
+            type="button"
+            className="btn btn-primary btn-lg"
+            onClick={() => switchMode('login')}
+            style={{ width: '100%' }}
+          >
+            Continue to log in
+          </button>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal

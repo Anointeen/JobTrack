@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { friendlyDatabaseError } from './errorMessages';
+import { friendlyDatabaseError, friendlyAuthError } from './errorMessages';
 
 /**
  * These run with import.meta.env.DEV true, so the translated sentence is
@@ -105,6 +105,40 @@ describe('non-database errors', () => {
   it('keeps a plain readable message that is not database internals', () => {
     const msg = friendlyDatabaseError({ message: 'You must be signed in to add an application.' });
     expect(msg).toContain('You must be signed in');
+  });
+});
+
+describe('authentication errors', () => {
+  it('does not confirm that an address is already registered', () => {
+    // Supabase answers a duplicate sign-up with "User already registered" when
+    // email confirmation is disabled, which is an account-enumeration oracle.
+    for (const raw of ['User already registered', 'A user with this email already exists']) {
+      const msg = friendlyAuthError({ message: raw });
+      expect(msg).not.toMatch(/already registered|already exists/i);
+      expect(msg).toMatch(/could not create an account/i);
+      // Still actionable.
+      expect(msg).toMatch(/logging in|resetting your password/i);
+    }
+  });
+
+  it('passes through ordinary auth messages unchanged', () => {
+    expect(friendlyAuthError({ message: 'Invalid login credentials' }))
+      .toBe('Invalid login credentials');
+    expect(friendlyAuthError({ message: 'Password should be at least 6 characters' }))
+      .toBe('Password should be at least 6 characters');
+  });
+
+  it('replaces anything resembling internals', () => {
+    const msg = friendlyAuthError({
+      message: 'null value in column "email" of relation "users" violates not-null constraint'
+    });
+    expect(msg).not.toMatch(/relation |violates|constraint|null value/i);
+  });
+
+  it('falls back when there is no message at all', () => {
+    expect(friendlyAuthError({})).toMatch(/could not complete that request/i);
+    expect(friendlyAuthError(null)).toMatch(/could not complete that request/i);
+    expect(friendlyAuthError(undefined, 'custom fallback')).toBe('custom fallback');
   });
 });
 

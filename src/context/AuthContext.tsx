@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { UserSession, UserProfile } from '../types';
+import { SignUpOutcome, UserSession, UserProfile } from '../types';
 import { supabase, isSupabaseConfigured, isDemoMode } from '../lib/supabase';
+import { friendlyAuthError } from '../lib/errorMessages';
 import { dataService } from '../lib/dataService';
 
 interface AuthContextType {
@@ -14,7 +15,7 @@ interface AuthContextType {
   completePasswordRecovery: () => void;
   /** Abandons recovery mode and signs the temporary session out. */
   cancelPasswordRecovery: () => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<SignUpOutcome>;
   logIn: (email: string, password: string) => Promise<void>;
   logOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -168,7 +169,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string
+  ): Promise<SignUpOutcome> => {
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -177,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: { full_name: fullName }
         }
       });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(friendlyAuthError(error));
 
       // The handle_new_user() trigger already created the profile and default
       // notification preferences server-side. No client-side insert is
@@ -191,13 +196,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(uSession);
         await loadUserProfile(uSession.id);
-        return;
+        return { status: 'active_session' };
       }
 
-      // No session means the Supabase project requires email confirmation.
-      throw new Error(
-        'Account created. Please check your email to confirm your address, then log in.'
-      );
+      // No session means the project requires email confirmation. This is a
+      // successful sign-up, not a failure, so it is returned rather than thrown.
+      // Supabase deliberately returns this same shape for an address that is
+      // already registered, which is what prevents account enumeration.
+      return { status: 'confirmation_required', email };
     }
 
     // Local Demo SignUp (development only)
@@ -223,6 +229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     setProfile(newProf);
     setNeedsOnboarding(true);
+    return { status: 'active_session' };
   };
 
   const logIn = async (email: string, password: string) => {
