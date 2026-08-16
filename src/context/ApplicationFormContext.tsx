@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Application } from '../types';
+import { Application, ApplicationInput } from '../types';
 import { ApplicationFormModal } from '../components/applications/ApplicationFormModal';
 import { useApplications } from './ApplicationsContext';
 import { useToast } from './ToastContext';
@@ -42,7 +42,7 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
   }, []);
 
   const handleSave = async (
-    data: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+    data: ApplicationInput
   ) => {
     try {
       if (editing) {

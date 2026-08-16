@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
-import { Application, ApplicationStatus, JobType } from '../../types';
+import { Application, ApplicationInput, ApplicationStatus, JobType } from '../../types';
 import { Building2, Briefcase, MapPin, Calendar, Link as LinkIcon, User, Mail } from 'lucide-react';
 
 interface ApplicationFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  onSave: (data: ApplicationInput) => Promise<void>;
   initialData?: Application | null;
 }
 

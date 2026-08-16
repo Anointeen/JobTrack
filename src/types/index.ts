@@ -17,6 +17,35 @@ export type JobType =
   | 'Freelance'
   | 'Other';
 
+/**
+ * Mirrors applications_priority_check in migration 0002.
+ * The database column is NOT NULL DEFAULT 'Medium'.
+ */
+export type ApplicationPriority = 'Low' | 'Medium' | 'High';
+
+export const APPLICATION_PRIORITIES: readonly ApplicationPriority[] = [
+  'Low', 'Medium', 'High'
+] as const;
+
+/**
+ * Mirrors applications_source_check in migration 0002.
+ * The database column is nullable — source is optional.
+ */
+export type ApplicationSource =
+  | 'LinkedIn'
+  | 'Company Website'
+  | 'Indeed'
+  | 'Job Board'
+  | 'Referral'
+  | 'Recruiter'
+  | 'University'
+  | 'Other';
+
+export const APPLICATION_SOURCES: readonly ApplicationSource[] = [
+  'LinkedIn', 'Company Website', 'Indeed', 'Job Board',
+  'Referral', 'Recruiter', 'University', 'Other'
+] as const;
+
 export interface Application {
   id: string;
   user_id: string;
@@ -33,9 +62,36 @@ export interface Application {
   recruiter_name?: string;
   recruiter_email?: string;
   notes?: string;
+
+  // --- Metadata added in migration 0002 ---
+  /** NOT NULL in the database, so always present on a row read back. */
+  priority: ApplicationPriority;
+  source?: ApplicationSource | null;
+  /** NOT NULL DEFAULT '{}' — always an array, never null, on a row read back. */
+  tags: string[];
+  /** ISO Date YYYY-MM-DD. Must not predate application_date. */
+  follow_up_date?: string | null;
+  follow_up_note?: string | null;
+
   created_at: string;
   updated_at: string;
 }
+
+/**
+ * Payload accepted when creating an application.
+ *
+ * `priority` and `tags` are optional here even though they are NOT NULL on the
+ * row: omitting them lets the database defaults ('Medium' and '{}') apply,
+ * which is exactly what should happen for a caller that does not set them.
+ */
+export type ApplicationInput =
+  Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'priority' | 'tags'> & {
+    priority?: ApplicationPriority;
+    tags?: string[];
+  };
+
+/** Payload accepted when updating an application. Every field is optional. */
+export type ApplicationUpdate = Partial<Omit<Application, 'id' | 'user_id' | 'created_at'>>;
 
 export interface ApplicationStatusHistory {
   id: string;

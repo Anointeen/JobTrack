@@ -1,9 +1,11 @@
-import { 
-  Application, 
-  ApplicationStatus, 
-  ApplicationStatusHistory, 
-  UserProfile, 
-  NotificationPreferences 
+import {
+  Application,
+  ApplicationInput,
+  ApplicationUpdate,
+  ApplicationStatus,
+  ApplicationStatusHistory,
+  UserProfile,
+  NotificationPreferences
 } from '../types';
 import { supabase, isSupabaseConfigured, isDemoMode } from './supabase';
 
@@ -58,6 +60,9 @@ const getInitialSeedApplications = (userId: string): Application[] => {
       recruiter_name: 'Sarah Jenkins',
       recruiter_email: 'sjenkin@stripe.com',
       notes: 'Passed initial recruiter screening and technical assessment. Technical panel scheduled for next Tuesday.',
+      priority: 'High',
+      source: 'LinkedIn',
+      tags: ['Dream Job', 'Remote'],
       created_at: daysAgo(14) + 'T10:00:00Z',
       updated_at: daysAgo(2) + 'T14:30:00Z'
     },
@@ -77,6 +82,9 @@ const getInitialSeedApplications = (userId: string): Application[] => {
       recruiter_name: 'Marcus Vance',
       recruiter_email: 'marcus.v@airbnb.com',
       notes: 'Offer letter received! Base salary $175k + Equity & Sign-on bonus. Reviewing compensation package.',
+      priority: 'High',
+      source: 'Referral',
+      tags: ['Relocation'],
       created_at: daysAgo(28) + 'T09:15:00Z',
       updated_at: daysAgo(1) + 'T16:00:00Z'
     },
@@ -96,6 +104,9 @@ const getInitialSeedApplications = (userId: string): Application[] => {
       recruiter_name: 'Alex Rivera',
       recruiter_email: 'arivera@vercel.com',
       notes: 'Completed take-home project building a server-driven UI dashboard.',
+      priority: 'Medium',
+      source: 'Company Website',
+      tags: ['Remote', 'Contract'],
       created_at: daysAgo(7) + 'T11:45:00Z',
       updated_at: daysAgo(3) + 'T12:00:00Z'
     },
@@ -115,6 +126,11 @@ const getInitialSeedApplications = (userId: string): Application[] => {
       recruiter_name: 'Elena Rostova',
       recruiter_email: 'elena.r@spotify.com',
       notes: 'Applied via company portal with tailored cover letter highlighting audio processing experience.',
+      priority: 'Medium',
+      source: 'Indeed',
+      tags: ['Hybrid'],
+      follow_up_date: daysAgo(-3),
+      follow_up_note: 'Chase the recruiter if there is no reply by then.',
       created_at: daysAgo(5) + 'T15:20:00Z',
       updated_at: daysAgo(5) + 'T15:20:00Z'
     },
@@ -134,6 +150,9 @@ const getInitialSeedApplications = (userId: string): Application[] => {
       recruiter_name: '',
       recruiter_email: '',
       notes: 'Discovered via Twitter. Need to customize resume focusing on high-performance web apps before submitting.',
+      priority: 'High',
+      source: 'Other',
+      tags: ['Dream Job', 'Remote'],
       created_at: daysAgo(1) + 'T18:00:00Z',
       updated_at: daysAgo(1) + 'T18:00:00Z'
     },
@@ -150,6 +169,9 @@ const getInitialSeedApplications = (userId: string): Application[] => {
       application_date: daysAgo(35),
       deadline: daysAgo(20),
       notes: 'Received polite rejection email after final interview stage.',
+      priority: 'Low',
+      source: 'Job Board',
+      tags: [],
       created_at: daysAgo(35) + 'T08:00:00Z',
       updated_at: daysAgo(10) + 'T11:00:00Z'
     }
@@ -243,11 +265,15 @@ export const dataService = {
 
   async createApplication(
     userId: string, 
-    appData: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+    appData: ApplicationInput
   ): Promise<Application> {
     const now = new Date().toISOString();
 
     if (isSupabaseConfigured && supabase) {
+      // Omitted keys are dropped during JSON serialisation, so the column
+      // defaults from migration 0002 (priority 'Medium', tags '{}') apply
+      // whenever the caller does not supply them. `.select()` returns the full
+      // row, including the values the database filled in.
       const { data, error } = await supabase
         .from('applications')
         .insert([{
@@ -279,6 +305,10 @@ export const dataService = {
     assertDemoMode('create an application');
     const newApp: Application = {
       ...appData,
+      // Mirrors the NOT NULL DEFAULTs the database applies in migration 0002,
+      // so a locally created record has the same shape as a persisted one.
+      priority: appData.priority ?? 'Medium',
+      tags: appData.tags ?? [],
       id: 'app-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
       user_id: userId,
       created_at: now,
@@ -303,7 +333,7 @@ export const dataService = {
   async updateApplication(
     userId: string, 
     id: string, 
-    updates: Partial<Omit<Application, 'id' | 'user_id' | 'created_at'>>
+    updates: ApplicationUpdate
   ): Promise<Application> {
     const existing = await this.getApplicationById(id, userId);
     if (!existing) {

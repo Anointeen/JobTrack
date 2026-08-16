@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Application } from '../types';
+import { Application, ApplicationInput, ApplicationUpdate } from '../types';
 import { dataService } from '../lib/dataService';
 import { useAuth } from './AuthContext';
 
@@ -12,11 +12,11 @@ interface ApplicationsContextType {
   loaded: boolean;
   refresh: () => Promise<void>;
   createApplication: (
-    data: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+    data: ApplicationInput
   ) => Promise<Application>;
   updateApplication: (
     id: string,
-    updates: Partial<Omit<Application, 'id' | 'user_id' | 'created_at'>>
+    updates: ApplicationUpdate
   ) => Promise<Application>;
   removeApplication: (id: string) => Promise<void>;
   getById: (id: string) => Application | undefined;
@@ -72,7 +72,7 @@ export const ApplicationsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [user, needsOnboarding, refresh]);
 
   const createApplication = useCallback(
-    async (data: Omit<Application, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    async (data: ApplicationInput) => {
       if (!user) throw new Error('You must be signed in to add an application.');
       const created = await dataService.createApplication(user.id, data);
       await refresh();
@@ -82,7 +82,7 @@ export const ApplicationsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   );
 
   const updateApplication = useCallback(
-    async (id: string, updates: Partial<Omit<Application, 'id' | 'user_id' | 'created_at'>>) => {
+    async (id: string, updates: ApplicationUpdate) => {
       if (!user) throw new Error('You must be signed in to edit an application.');
       const updated = await dataService.updateApplication(user.id, id, updates);
       await refresh();
