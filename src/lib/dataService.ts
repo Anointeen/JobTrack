@@ -8,6 +8,7 @@ import {
   NotificationPreferences
 } from '../types';
 import { supabase, isSupabaseConfigured, isDemoMode } from './supabase';
+import { friendlyDatabaseError } from './errorMessages';
 
 const STORAGE_KEYS = {
   APPLICATIONS: 'jobtrack_applications_',
@@ -237,7 +238,7 @@ export const dataService = {
 
       if (error) {
         console.error('Supabase fetch applications error:', error);
-        throw new Error(`Failed to load applications: ${error.message}`);
+        throw new Error(friendlyDatabaseError(error, 'Your applications could not be loaded. Please try again.'));
       }
       return data as Application[];
     }
@@ -285,7 +286,7 @@ export const dataService = {
 
       if (error) {
         console.error('Supabase create application error:', error);
-        throw new Error(`Failed to create application: ${error.message}`);
+        throw new Error(friendlyDatabaseError(error, 'The application could not be saved. Please try again.'));
       }
 
       const newApp = data as Application;
@@ -355,7 +356,7 @@ export const dataService = {
 
       if (error) {
         console.error('Supabase update application error:', error);
-        throw new Error(`Failed to update application: ${error.message}`);
+        throw new Error(friendlyDatabaseError(error, 'The application could not be updated. Please try again.'));
       }
 
       const updatedApp = data as Application;
@@ -411,7 +412,7 @@ export const dataService = {
 
       if (error) {
         console.error('Supabase delete application error:', error);
-        throw new Error(`Failed to delete application: ${error.message}`);
+        throw new Error(friendlyDatabaseError(error, 'The application could not be deleted. Please try again.'));
       }
       return;
     }
@@ -536,7 +537,7 @@ export const dataService = {
       // live profile with blank values.
       if (error && error.code !== 'PGRST116') {
         console.error('Supabase fetch profile error:', error);
-        throw new Error(`Failed to load profile: ${error.message}`);
+        throw new Error(friendlyDatabaseError(error, 'Your profile could not be loaded. Please try again.'));
       }
       return (data as UserProfile) ?? null;
     }
@@ -602,7 +603,7 @@ export const dataService = {
 
       if (error) {
         console.error('Supabase update profile error:', error);
-        throw new Error(`Failed to save profile: ${error.message}`);
+        throw new Error(friendlyDatabaseError(error, 'Your profile could not be saved. Please try again.'));
       }
       return data as UserProfile;
     }
@@ -632,7 +633,7 @@ export const dataService = {
 
       if (error) {
         console.error('Supabase fetch notification preferences error:', error);
-        throw new Error(`Failed to load notification preferences: ${error.message}`);
+        throw new Error(friendlyDatabaseError(error, 'Your notification preferences could not be loaded.'));
       }
       // handle_new_user() seeds this row, but fall back to the same defaults
       // the column definitions use if it is missing.
@@ -683,7 +684,7 @@ export const dataService = {
 
       if (error) {
         console.error('Supabase update notification preferences error:', error);
-        throw new Error(`Failed to save notification preferences: ${error.message}`);
+        throw new Error(friendlyDatabaseError(error, 'Your notification preferences could not be saved.'));
       }
       return data as NotificationPreferences;
     }
@@ -717,7 +718,7 @@ export const dataService = {
 
       if (applicationsError) {
         console.error('Supabase delete applications error:', applicationsError);
-        throw new Error(`Failed to delete applications: ${applicationsError.message}`);
+        throw new Error(friendlyDatabaseError(applicationsError, 'Your applications could not be deleted.'));
       }
 
       const { error: preferencesError } = await supabase
@@ -727,7 +728,7 @@ export const dataService = {
 
       if (preferencesError) {
         console.error('Supabase delete notification preferences error:', preferencesError);
-        throw new Error(`Failed to delete notification preferences: ${preferencesError.message}`);
+        throw new Error(friendlyDatabaseError(preferencesError, 'Your notification preferences could not be deleted.'));
       }
 
       const { error: profileError } = await supabase
@@ -737,7 +738,7 @@ export const dataService = {
 
       if (profileError) {
         console.error('Supabase delete profile error:', profileError);
-        throw new Error(`Failed to delete profile: ${profileError.message}`);
+        throw new Error(friendlyDatabaseError(profileError, 'Your profile could not be deleted.'));
       }
 
       return;

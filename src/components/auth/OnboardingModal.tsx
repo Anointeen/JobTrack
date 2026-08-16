@@ -93,7 +93,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: '0.75rem',
-            color: 'var(--primary-600)'
+            color: 'var(--primary-text)'
           }}
         >
           <Rocket size={28} />

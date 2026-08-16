@@ -188,8 +188,8 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             {application.job_title}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '4px' }}>
-            <Building2 size={18} color="var(--primary-600)" />
-            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-600)' }}>
+            <Building2 size={18} color="var(--primary-text)" />
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-text)' }}>
               {application.company_name}
             </span>
           </div>
@@ -218,7 +218,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             marginBottom: '1.5rem'
           }}
         >
-          <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-700)', marginBottom: '0.75rem' }}>
+          <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-text)', marginBottom: '0.75rem' }}>
             Update Application Status
           </h4>
           <div className="form-group">
@@ -398,7 +398,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             <div style={{ marginTop: '4px', fontSize: '0.875rem', color: 'var(--text-heading)' }}>
               {application.recruiter_name && <div><strong>{application.recruiter_name}</strong></div>}
               {application.recruiter_email && (
-                <a href={`mailto:${application.recruiter_email}`} style={{ fontSize: '0.8125rem', color: 'var(--primary-600)' }}>
+                <a href={`mailto:${application.recruiter_email}`} style={{ fontSize: '0.8125rem', color: 'var(--primary-text)' }}>
                   {application.recruiter_email}
                 </a>
               )}

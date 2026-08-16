@@ -101,7 +101,7 @@ export const SetNewPasswordModal: React.FC = () => {
         <div
           style={{
             width: '48px', height: '48px', borderRadius: '12px',
-            backgroundColor: 'var(--primary-50)', color: 'var(--primary-600)',
+            backgroundColor: 'var(--primary-50)', color: 'var(--primary-text)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             marginBottom: '0.75rem'
           }}

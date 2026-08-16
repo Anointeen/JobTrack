@@ -79,7 +79,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             marginBottom: '0.75rem'
           }}
         >
-          <Briefcase size={24} color="var(--primary-600)" />
+          <Briefcase size={24} color="var(--primary-text)" />
         </div>
         <h3 style={{ fontSize: '1.25rem' }}>
           {mode === 'signup' ? 'Start Tracking Your Career' : 'Log In to JobTrack'}
@@ -167,7 +167,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
-                style={{ padding: 0, fontSize: '0.8125rem', color: 'var(--primary-600)' }}
+                style={{ padding: 0, fontSize: '0.8125rem', color: 'var(--primary-text)' }}
                 onClick={() => {
                   onClose();
                   onOpenForgotPassword();
@@ -228,7 +228,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button 
               type="button" 
               onClick={() => switchMode('login')}
-              style={{ background: 'none', border: 'none', color: 'var(--primary-600)', fontWeight: 600, cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: 'var(--primary-text)', fontWeight: 600, cursor: 'pointer' }}
             >
               Log In
             </button>
@@ -239,7 +239,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button 
               type="button" 
               onClick={() => switchMode('signup')}
-              style={{ background: 'none', border: 'none', color: 'var(--primary-600)', fontWeight: 600, cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: 'var(--primary-text)', fontWeight: 600, cursor: 'pointer' }}
             >
               Sign Up
             </button>

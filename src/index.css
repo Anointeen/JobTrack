@@ -10,8 +10,12 @@
   --border-subtle: #f1f5f9;
   
   --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-subtle: #94a3b8;
+  /* Both secondary tiers must clear WCAG AA (4.5:1) for normal text. The
+     previous --text-subtle (#94a3b8) measured 2.45:1 on --bg-app and 2.56:1 on
+     white. Darkening --text-muted alongside it preserves the visual hierarchy
+     between the two tiers rather than collapsing them onto one value. */
+  --text-muted: #475569;
+  --text-subtle: #64748b;
   --text-heading: #0f172a;
 
   --input-bg: #ffffff;
@@ -24,6 +28,16 @@
   --primary-200: #c7d2fe;
   --primary-500: #6366f1;
   --primary-600: #4f46e5;
+
+  /* Accent text is a separate role from the accent surface.
+     --primary-600 has to stay dark enough for white button labels to clear AA
+     on top of it, which makes it too dark to use as small text on a dark
+     surface (it measured 2.8:1). --primary-text carries the text role and is
+     tuned per theme for contrast; --primary-600 remains the fill colour. */
+  --primary-text: #4338ca;
+  /* Danger-toned *text*. --rose-500 is a fill/border colour and measures only
+     3.67:1 on white, so destructive labels need their own readable value. */
+  --danger-text: #be123c;
   --primary-700: #4338ca;
 
   --slate-50: #f8fafc;
@@ -149,8 +163,10 @@
   --border-subtle: #1e293b;
 
   --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-subtle: #64748b;
+  /* Dark-theme equivalents. The previous --text-subtle (#64748b) measured
+     3.07:1 on --bg-subtle and 3.72:1 on --bg-surface, both below AA. */
+  --text-muted: #cbd5e1;
+  --text-subtle: #94a3b8;
   --text-heading: #ffffff;
 
   --input-bg: #1e293b;
@@ -167,6 +183,12 @@
   --slate-700: #e2e8f0;
   --slate-800: #f1f5f9;
   --slate-900: #f8fafc;
+
+  /* --primary-600 keeps its light-theme value here: as a button fill it gives
+     white labels ~6.3:1. Accent *text* switches to --primary-text below, which
+     is light enough to read on a dark surface. */
+  --primary-text: #a5b4fc;
+  --danger-text: #fca5a5;
 
   --primary-50: rgba(79, 70, 229, 0.15);
   --primary-100: rgba(79, 70, 229, 0.25);
@@ -264,13 +286,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 a {
-  color: var(--primary-600);
+  color: var(--primary-text);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 a:hover {
-  color: var(--primary-500);
+  color: var(--primary-text);
+  /* Both link states now share one accessible accent colour, so the hover
+     affordance is carried by the underline rather than a colour shift. */
+  text-decoration: underline;
 }
 
 button, input, select, textarea {
@@ -865,6 +890,43 @@ p, span, td, th, li, a, label {
      content is reachable from Settings. Dropped first when space is tight. */
   .header-notifications {
     display: none;
+  }
+}
+
+/* --- Landing page ------------------------------------------------------
+   The public landing page is the one screen an unauthenticated visitor sees,
+   and it was scrolling sideways below ~640px: the sticky header's brand and
+   two nowrap buttons needed 544px, and the dashboard mockup's pipeline used
+   `repeat(5, 1fr)`, whose implicit min-width:auto tracks cannot shrink below
+   their own content. */
+.landing-cta-short {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .landing-header {
+    height: auto !important;
+    min-height: var(--header-height);
+    padding: 0.625rem 1rem !important;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .landing-header-actions {
+    gap: 0.5rem !important;
+  }
+
+  /* Swap the long CTA label for the short one. */
+  .landing-cta-full { display: none; }
+  .landing-cta-short { display: inline; }
+
+  /* minmax(0, …) lets the mockup tracks shrink below their content width. */
+  .landing-mock-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .landing-mock-pipeline {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
 

@@ -25,9 +25,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenSignup, onOpenLo
   return (
     <div style={{ backgroundColor: 'var(--bg-app)', minHeight: '100vh', display: 'flex', flexDirection: 'column', color: 'var(--text-main)' }}>
       {/* Navigation Topbar */}
-      <header 
-        style={{ 
-          height: '72px', 
+      <header
+        className="landing-header"
+        style={{
+          height: '72px',
           borderBottom: '1px solid var(--border-color)', 
           padding: '0 2rem', 
           display: 'flex', 
@@ -61,7 +62,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenSignup, onOpenLo
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="landing-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button
             className="btn btn-ghost btn-sm"
             onClick={toggleTheme}
@@ -74,7 +75,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenSignup, onOpenLo
             Log In
           </button>
           <button onClick={onOpenSignup} className="btn btn-primary" style={{ boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)' }}>
-            Start Tracking Jobs
+            {/* The full label cannot fit beside the brand and Log In on a
+                375px screen; the short form keeps the row within the viewport. */}
+            <span className="landing-cta-full">Start Tracking Jobs</span>
+            <span className="landing-cta-short">Sign Up</span>
             <ArrowRight size={16} />
           </button>
         </div>
@@ -103,7 +107,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenSignup, onOpenLo
               borderRadius: 'var(--radius-full)', 
               backgroundColor: 'var(--primary-50)', 
               border: '1px solid var(--primary-200)',
-              color: 'var(--primary-600)',
+              color: 'var(--primary-text)',
               fontSize: '0.84375rem',
               fontWeight: 600,
               marginBottom: '1.5rem'
@@ -163,7 +167,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenSignup, onOpenLo
               <span>100% Free Core Tracking</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              <ShieldCheck size={18} color="var(--primary-600)" />
+              <ShieldCheck size={18} color="var(--primary-text)" />
               <span>Private & Isolated User Data</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
@@ -196,7 +200,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenSignup, onOpenLo
 
             {/* Dashboard content teaser mock */}
             <div style={{ padding: '2rem', backgroundColor: 'var(--bg-app)', textAlign: 'left' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div className="landing-mock-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ padding: '1rem', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Applications</p>
                   <p style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-heading)' }}>24</p>
@@ -211,7 +215,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenSignup, onOpenLo
                 </div>
                 <div style={{ padding: '1rem', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Success Rate</p>
-                  <p style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary-600)' }}>8.3%</p>
+                  <p style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary-text)' }}>8.3%</p>
                 </div>
               </div>
 
@@ -221,7 +225,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenSignup, onOpenLo
                   <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-heading)' }}>Application Status Pipeline</span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Live Updating</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', textAlign: 'center' }}>
+                <div className="landing-mock-pipeline" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '0.5rem', textAlign: 'center' }}>
                   <div style={{ padding: '0.5rem', background: 'var(--badge-saved-bg)', borderRadius: '8px' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--badge-saved-text)', fontWeight: 600 }}>Saved</span>
                     <p style={{ fontWeight: 800, color: 'var(--badge-saved-text)' }}>5</p>
@@ -263,7 +267,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenSignup, onOpenLo
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem' }}>
             {[
-              { icon: Briefcase, bg: 'var(--primary-50)', color: 'var(--primary-600)', title: 'Application Tracking', desc: 'Keep all job applications organized in one place. Store company details, recruiters, salaries, deadlines, and posting links effortlessly.' },
+              { icon: Briefcase, bg: 'var(--primary-50)', color: 'var(--primary-text)', title: 'Application Tracking', desc: 'Keep all job applications organized in one place. Store company details, recruiters, salaries, deadlines, and posting links effortlessly.' },
               { icon: LayoutDashboard, bg: 'var(--emerald-50)', color: 'var(--emerald-600)', title: 'Career Dashboard', desc: 'See your job search progress and key statistics at a glance. Track conversion rates, active interview funnels, and offer timelines.' },
               { icon: CalendarCheck, bg: 'var(--amber-50)', color: 'var(--amber-600)', title: 'Stay Organized', desc: 'Track interviews, assessments, deadlines, notes, and application status changes with complete historical timeline logging.' },
               { icon: Compass, bg: 'var(--purple-50)', color: 'var(--purple-600)', title: 'Career Management', desc: 'Build a central place for managing your entire job search and career journey, prepared to scale into CV matching and preparation tools.' }

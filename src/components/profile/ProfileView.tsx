@@ -86,7 +86,7 @@ export const ProfileView: React.FC = () => {
               height: '72px', 
               borderRadius: '50%', 
               backgroundColor: 'var(--primary-100)', 
-              color: 'var(--primary-700)',
+              color: 'var(--primary-text)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -103,7 +103,7 @@ export const ProfileView: React.FC = () => {
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-heading)' }}>
               {fullName || 'Job Tracker User'}
             </h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--primary-600)', fontWeight: 600, marginTop: '2px' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--primary-text)', fontWeight: 600, marginTop: '2px' }}>
               {professionalTitle || 'Career Management Member'}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '6px', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>

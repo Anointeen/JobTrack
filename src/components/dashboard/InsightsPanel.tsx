@@ -92,7 +92,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({
                 <span
                   style={{
                     width: '32px', height: '32px', borderRadius: 'var(--radius-sm)',
-                    backgroundColor: 'var(--primary-50)', color: 'var(--primary-600)',
+                    backgroundColor: 'var(--primary-50)', color: 'var(--primary-text)',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0
                   }}

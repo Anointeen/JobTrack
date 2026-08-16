@@ -144,7 +144,7 @@ export const SettingsView: React.FC = () => {
       {/* Appearance / Theme Card */}
       <div className="card">
         <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Palette size={20} color="var(--primary-600)" /> Appearance
+          <Palette size={20} color="var(--primary-text)" /> Appearance
         </h3>
         <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
           Choose how JobTrack looks on your device.
@@ -181,13 +181,13 @@ export const SettingsView: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: isSelected ? 'var(--primary-600)' : 'var(--text-muted)'
+                    color: isSelected ? 'var(--primary-text)' : 'var(--text-muted)'
                   }}
                 >
                   <Icon size={22} />
                 </div>
                 <div>
-                  <p style={{ fontWeight: 700, fontSize: '0.9375rem', color: isSelected ? 'var(--primary-600)' : 'var(--text-heading)' }}>
+                  <p style={{ fontWeight: 700, fontSize: '0.9375rem', color: isSelected ? 'var(--primary-text)' : 'var(--text-heading)' }}>
                     {opt.label}
                   </p>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -206,7 +206,7 @@ export const SettingsView: React.FC = () => {
       {/* Account Security Card */}
       <div className="card">
         <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Lock size={20} color="var(--primary-600)" /> Security & Password Management
+          <Lock size={20} color="var(--primary-text)" /> Security & Password Management
         </h3>
 
         <form onSubmit={handlePasswordSubmit}>
@@ -251,7 +251,7 @@ export const SettingsView: React.FC = () => {
       {/* Notifications Preferences Card */}
       <div className="card">
         <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Bell size={20} color="var(--primary-600)" /> Notification Preferences
+          <Bell size={20} color="var(--primary-text)" /> Notification Preferences
         </h3>
         <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
           Choose which automatic alerts and application reminders you want to receive.
@@ -312,7 +312,7 @@ export const SettingsView: React.FC = () => {
 
       {/* Danger Zone Card */}
       <div className="card" style={{ borderColor: 'var(--rose-500)', backgroundColor: 'var(--rose-50)' }}>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--rose-500)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--danger-text)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <ShieldAlert size={20} /> Danger Zone
         </h3>
         <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
@@ -353,7 +353,7 @@ export const SettingsView: React.FC = () => {
           }}
         >
           <div style={{ background: 'var(--bg-surface)', padding: '1.75rem', borderRadius: '16px', maxWidth: '440px', width: '100%', border: '1px solid var(--border-color)' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--rose-50)', color: 'var(--rose-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--rose-50)', color: 'var(--danger-text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
               <AlertTriangle size={26} />
             </div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '0.5rem' }}>

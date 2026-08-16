@@ -38,7 +38,7 @@ export const UpcomingDeadlines: React.FC<UpcomingDeadlinesProps> = ({ applicatio
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', marginBottom: shown.length ? '1.25rem' : '0.75rem' }}>
         <div>
           <h3 id="upcoming-deadlines-heading" style={{ fontSize: '1.125rem', color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <CalendarClock size={20} color="var(--primary-600)" />
+            <CalendarClock size={20} color="var(--primary-text)" />
             Upcoming Deadlines
           </h3>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -81,7 +81,7 @@ export const UpcomingDeadlines: React.FC<UpcomingDeadlinesProps> = ({ applicatio
                     <span style={{ display: 'block', fontWeight: 700, color: 'var(--text-heading)', fontSize: '0.9375rem' }}>
                       {app.job_title}
                     </span>
-                    <span style={{ display: 'block', fontSize: '0.8125rem', color: 'var(--primary-600)', fontWeight: 600 }}>
+                    <span style={{ display: 'block', fontSize: '0.8125rem', color: 'var(--primary-text)', fontWeight: 600 }}>
                       {app.company_name}
                     </span>
                   </span>

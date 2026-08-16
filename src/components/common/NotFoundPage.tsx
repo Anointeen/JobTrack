@@ -27,7 +27,7 @@ export const NotFoundPage: React.FC = () => {
         <div
           style={{
             width: '64px', height: '64px', borderRadius: '18px',
-            backgroundColor: 'var(--primary-50)', color: 'var(--primary-600)',
+            backgroundColor: 'var(--primary-50)', color: 'var(--primary-text)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             marginBottom: '1.25rem'
           }}

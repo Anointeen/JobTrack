@@ -87,7 +87,7 @@ export const RecentApplications: React.FC<RecentApplicationsProps> = ({
               height: '56px', 
               borderRadius: '50%', 
               backgroundColor: 'var(--primary-50)', 
-              color: 'var(--primary-600)',
+              color: 'var(--primary-text)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -140,7 +140,7 @@ export const RecentApplications: React.FC<RecentApplicationsProps> = ({
                       >
                         {app.job_title}
                       </Link>
-                      <div style={{ fontSize: '0.8125rem', color: 'var(--primary-600)', fontWeight: 600 }}>{app.company_name}</div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--primary-text)', fontWeight: 600 }}>{app.company_name}</div>
                     </td>
                     <td style={{ padding: '0.875rem 0.5rem', color: 'var(--text-muted)' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>

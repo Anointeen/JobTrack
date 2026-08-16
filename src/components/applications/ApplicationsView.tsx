@@ -291,7 +291,7 @@ export const ApplicationsView: React.FC = () => {
                     border: '1px solid',
                     borderColor: isActive ? 'var(--primary-600)' : 'var(--border-color)',
                     backgroundColor: isActive ? 'var(--primary-50)' : 'var(--bg-surface)',
-                    color: isActive ? 'var(--primary-700)' : 'var(--text-muted)',
+                    color: isActive ? 'var(--primary-text)' : 'var(--text-muted)',
                     fontWeight: isActive ? 700 : 500,
                     fontSize: '0.8125rem',
                     cursor: 'pointer',
@@ -351,7 +351,7 @@ export const ApplicationsView: React.FC = () => {
           <div
             style={{
               width: '56px', height: '56px', borderRadius: '50%',
-              backgroundColor: 'var(--primary-50)', color: 'var(--primary-600)',
+              backgroundColor: 'var(--primary-50)', color: 'var(--primary-text)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               marginBottom: '1rem'
             }}
@@ -447,7 +447,7 @@ export const ApplicationsView: React.FC = () => {
                           >
                             {app.job_title}
                           </Link>
-                          <div style={{ fontSize: '0.8125rem', color: 'var(--primary-600)', fontWeight: 600, marginTop: '2px' }}>
+                          <div style={{ fontSize: '0.8125rem', color: 'var(--primary-text)', fontWeight: 600, marginTop: '2px' }}>
                             {app.company_name}
                           </div>
                           {/* Tags and follow-up sit under the title so the row
@@ -533,7 +533,7 @@ export const ApplicationsView: React.FC = () => {
                       >
                         {app.job_title}
                       </Link>
-                      <p style={{ fontSize: '0.875rem', color: 'var(--primary-600)', fontWeight: 600, marginTop: '2px' }}>
+                      <p style={{ fontSize: '0.875rem', color: 'var(--primary-text)', fontWeight: 600, marginTop: '2px' }}>
                         {app.company_name}
                       </p>
                     </div>

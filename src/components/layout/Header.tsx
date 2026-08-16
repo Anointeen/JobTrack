@@ -156,7 +156,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                   backgroundColor: 'var(--primary-50)',
                   borderRadius: 'var(--radius-sm)',
                   fontSize: '0.78125rem',
-                  color: 'var(--primary-600)'
+                  color: 'var(--primary-text)'
                 }}
               >
                 💡 Tip: Set application reminder preferences in your Settings page!
@@ -187,7 +187,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
               height: '36px',
               borderRadius: '50%',
               backgroundColor: 'var(--primary-100)',
-              color: 'var(--primary-600)',
+              color: 'var(--primary-text)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

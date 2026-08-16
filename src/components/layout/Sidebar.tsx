@@ -75,7 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-heading)', lineHeight: 1.1 }}>
               JobTrack
             </h2>
-            <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--primary-600)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--primary-text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Career Hub
             </span>
           </div>
@@ -111,7 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
                 borderRadius: 'var(--radius-md)',
                 border: 'none',
                 backgroundColor: isActive ? 'var(--primary-50)' : 'transparent',
-                color: isActive ? 'var(--primary-600)' : 'var(--text-muted)',
+                color: isActive ? 'var(--primary-text)' : 'var(--text-muted)',
                 fontWeight: isActive ? 600 : 500,
                 fontSize: '0.9375rem',
                 cursor: 'pointer',
@@ -159,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
           gap: '0.5rem'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-600)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-text)' }}>
           <Sparkles size={16} />
           <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Career Management
@@ -179,7 +179,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
               height: '36px',
               borderRadius: '50%',
               backgroundColor: 'var(--primary-100)',
-              color: 'var(--primary-600)',
+              color: 'var(--primary-text)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -203,7 +203,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
         <button
           onClick={logOut}
           className="btn btn-ghost btn-sm"
-          style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--rose-500)' }}
+          style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--danger-text)' }}
         >
           <LogOut size={16} />
           Log Out
