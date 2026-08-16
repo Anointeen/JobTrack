@@ -139,6 +139,19 @@ export const startOfToday = (): number => {
 };
 
 /**
+ * Today's date in the user's own timezone, as 'YYYY-MM-DD'.
+ *
+ * `new Date().toISOString().split('T')[0]` returns the UTC date, which is
+ * tomorrow for anyone west of Greenwich during their evening — so a form
+ * defaulting to it would pre-fill a date the user has not reached yet.
+ */
+export const todayLocalDate = (): string => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+/**
  * Parses a value to local midnight of the day it denotes.
  *
  * A date-only 'YYYY-MM-DD' string must be built from its parts rather than

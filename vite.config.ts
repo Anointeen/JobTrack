@@ -10,11 +10,18 @@ export default defineConfig({
     open: true
   },
   test: {
-    // Pure-logic tests only — no DOM environment is needed, which keeps the
-    // test stack to a single dev dependency.
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
-    // Tests never reach the network; nothing here talks to Supabase.
-    restoreMocks: true
+    // jsdom for everything: the pure-logic suites are unaffected by it, and a
+    // single environment avoids per-file configuration.
+    environment: 'jsdom',
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    setupFiles: ['./src/test/setup.ts'],
+    // Mocks are restored between tests so no suite can leak state into
+    // another, which keeps the run order irrelevant.
+    restoreMocks: true,
+    clearMocks: true,
+    // Integration tests mount lazily-loaded route chunks; the default 5s is
+    // tight on a cold module graph. Not a substitute for determinism — no test
+    // waits on a timer, they all wait on an assertion becoming true.
+    testTimeout: 15_000
   }
 });

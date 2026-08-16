@@ -10,7 +10,7 @@ import {
   APPLICATION_SOURCES,
   JobType
 } from '../../types';
-import { normaliseTag, hasTag } from '../../lib/applicationFilters';
+import { normaliseTag, hasTag, todayLocalDate } from '../../lib/applicationFilters';
 import { TagList } from './ApplicationMetadata';
 import {
   Building2, Briefcase, MapPin, Calendar, Link as LinkIcon, User, Mail,
@@ -33,7 +33,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
   const [companyName, setCompanyName] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [status, setStatus] = useState<ApplicationStatus>('Applied');
-  const [applicationDate, setApplicationDate] = useState(new Date().toISOString().split('T')[0]);
+  const [applicationDate, setApplicationDate] = useState(todayLocalDate());
   const [location, setLocation] = useState('');
   const [jobType, setJobType] = useState<JobType>('Full-time');
   const [jobPostingUrl, setJobPostingUrl] = useState('');
@@ -61,7 +61,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       setCompanyName(initialData.company_name);
       setJobTitle(initialData.job_title);
       setStatus(initialData.status);
-      setApplicationDate(initialData.application_date || new Date().toISOString().split('T')[0]);
+      setApplicationDate(initialData.application_date || todayLocalDate());
       setLocation(initialData.location || '');
       setJobType(initialData.job_type || 'Full-time');
       setJobPostingUrl(initialData.job_posting_url || '');
@@ -81,7 +81,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       setCompanyName('');
       setJobTitle('');
       setStatus('Applied');
-      setApplicationDate(new Date().toISOString().split('T')[0]);
+      setApplicationDate(todayLocalDate());
       setLocation('');
       setJobType('Full-time');
       setJobPostingUrl('');
@@ -310,12 +310,13 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
         {/* Required Fields Section */}
         <div className="form-row form-row-2">
           <div className="form-group">
-            <label className="form-label">
+            <label className="form-label" htmlFor="application-company-name">
               Company Name <span className="required">*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <Building2 size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
+              id="application-company-name"
                 type="text"
                 className={`input-control ${errors.companyName ? 'input-error' : ''}`}
                 placeholder="e.g. Stripe"
@@ -329,12 +330,13 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">
+            <label className="form-label" htmlFor="application-job-title">
               Job Title <span className="required">*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <Briefcase size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
+              id="application-job-title"
                 type="text"
                 className={`input-control ${errors.jobTitle ? 'input-error' : ''}`}
                 placeholder="e.g. Senior Frontend Engineer"
@@ -350,10 +352,11 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
 
         <div className="form-row form-row-2">
           <div className="form-group">
-            <label className="form-label">
+            <label className="form-label" htmlFor="application-status">
               Status <span className="required">*</span>
             </label>
             <select
+              id="application-status"
               className="input-control"
               value={status}
               onChange={e => setStatus(e.target.value as ApplicationStatus)}
@@ -365,12 +368,13 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">
+            <label className="form-label" htmlFor="application-application-date">
               Application Date <span className="required">*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <Calendar size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
+              id="application-application-date"
                 type="date"
                 className="input-control"
                 value={applicationDate}
@@ -390,10 +394,11 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
 
         <div className="form-row form-row-2">
           <div className="form-group">
-            <label className="form-label">Location</label>
+            <label className="form-label" htmlFor="application-location">Location</label>
             <div style={{ position: 'relative' }}>
               <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
+              id="application-location"
                 type="text"
                 className="input-control"
                 placeholder="e.g. San Francisco, CA (Remote)"
@@ -405,8 +410,9 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Job Type</label>
+            <label className="form-label" htmlFor="application-job-type">Job Type</label>
             <select
+              id="application-job-type"
               className="input-control"
               value={jobType}
               onChange={e => setJobType(e.target.value as JobType)}
@@ -419,10 +425,11 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
         </div>
 
         <div className="form-group">
-          <label className="form-label">Job Posting URL</label>
+          <label className="form-label" htmlFor="application-job-posting-url">Job Posting URL</label>
           <div style={{ position: 'relative' }}>
             <LinkIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
             <input
+              id="application-job-posting-url"
               type="url"
               className={`input-control ${errors.jobPostingUrl ? 'input-error' : ''}`}
               placeholder="https://company.com/careers/job-id"
@@ -436,8 +443,9 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
 
         <div className="form-row form-row-3">
           <div className="form-group">
-            <label className="form-label">Salary Min ($/yr)</label>
+            <label className="form-label" htmlFor="application-salary-min-yr">Salary Min ($/yr)</label>
             <input
+              id="application-salary-min-yr"
               type="number"
               min="0"
               className={`input-control ${errors.salaryMin ? 'input-error' : ''}`}
@@ -449,8 +457,9 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Salary Max ($/yr)</label>
+            <label className="form-label" htmlFor="application-salary-max-yr">Salary Max ($/yr)</label>
             <input
+              id="application-salary-max-yr"
               type="number"
               min="0"
               className={`input-control ${errors.salaryMax ? 'input-error' : ''}`}
@@ -462,8 +471,9 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Application Deadline</label>
+            <label className="form-label" htmlFor="application-application-deadline">Application Deadline</label>
             <input
+              id="application-application-deadline"
               type="date"
               className={`input-control ${errors.deadline ? 'input-error' : ''}`}
               value={deadline}
@@ -482,10 +492,11 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
 
         <div className="form-row form-row-2">
           <div className="form-group">
-            <label className="form-label">Recruiter Name</label>
+            <label className="form-label" htmlFor="application-recruiter-name">Recruiter Name</label>
             <div style={{ position: 'relative' }}>
               <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
+              id="application-recruiter-name"
                 type="text"
                 className="input-control"
                 placeholder="e.g. Sarah Jenkins"
@@ -497,10 +508,11 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Recruiter Email</label>
+            <label className="form-label" htmlFor="application-recruiter-email">Recruiter Email</label>
             <div style={{ position: 'relative' }}>
               <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
+              id="application-recruiter-email"
                 type="email"
                 className={`input-control ${errors.recruiterEmail ? 'input-error' : ''}`}
                 placeholder="recruiter@company.com"

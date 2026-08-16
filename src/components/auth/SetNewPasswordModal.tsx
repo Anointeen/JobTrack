@@ -129,12 +129,13 @@ export const SetNewPasswordModal: React.FC = () => {
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label className="form-label">
+          <label className="form-label" htmlFor="reset-new-password">
             New Password <span className="required">*</span>
           </label>
           <div style={{ position: 'relative' }}>
             <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
             <input
+              id="reset-new-password"
               type="password"
               className="input-control"
               placeholder="At least 6 characters"
@@ -148,12 +149,13 @@ export const SetNewPasswordModal: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label className="form-label">
+          <label className="form-label" htmlFor="reset-confirm-new-password">
             Confirm New Password <span className="required">*</span>
           </label>
           <div style={{ position: 'relative' }}>
             <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
             <input
+              id="reset-confirm-new-password"
               type="password"
               className="input-control"
               placeholder="Re-enter your new password"

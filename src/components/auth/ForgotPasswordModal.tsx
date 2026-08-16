@@ -54,13 +54,14 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
           )}
 
           <div className="form-group">
-            <label className="form-label">Email Address</label>
+            <label className="form-label" htmlFor="forgot-email-address">Email Address</label>
             <div style={{ position: 'relative' }}>
               <Mail 
                 size={18} 
                 style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} 
               />
               <input
+              id="forgot-email-address"
                 type="email"
                 className="input-control"
                 placeholder="alex@example.com"

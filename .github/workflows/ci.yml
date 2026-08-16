@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Cancel a superseded run for the same ref rather than paying for both.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, test and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Node 20 LTS. Vite 6 supports ^18 || ^20 || >=22.
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies from the lockfile
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        # The suite mocks every data boundary, so no Supabase credentials are
+        # required and nothing reaches the network.
+        run: npm test
+
+      - name: Build
+        # VITE_SUPABASE_* are intentionally absent. Vite inlines them at build
+        # time, so the bundle it produces here is not deployable — this step
+        # verifies the build compiles, nothing more. Deployment sets them.
+        run: npm run build

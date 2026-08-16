@@ -212,8 +212,9 @@ export const SettingsView: React.FC = () => {
         <form onSubmit={handlePasswordSubmit}>
           <div className="form-row form-row-2">
             <div className="form-group">
-              <label className="form-label">New Password</label>
+              <label className="form-label" htmlFor="settings-new-password">New Password</label>
               <input
+              id="settings-new-password"
                 type="password"
                 className="input-control"
                 placeholder="••••••••"
@@ -223,8 +224,9 @@ export const SettingsView: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Confirm New Password</label>
+              <label className="form-label" htmlFor="settings-confirm-new-password">Confirm New Password</label>
               <input
+              id="settings-confirm-new-password"
                 type="password"
                 className="input-control"
                 placeholder="••••••••"

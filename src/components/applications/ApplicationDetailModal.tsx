@@ -54,6 +54,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const [newStatus, setNewStatus] = useState<ApplicationStatus>('Applied');
   const [statusNote, setStatusNote] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [statusError, setStatusError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Primitive fields, so the effect below keys off stable values rather than a
@@ -95,6 +96,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const handleUpdateStatus = async () => {
     if (!application || newStatus === application.status) return;
     setUpdatingStatus(true);
+    setStatusError('');
     try {
       const updated = await dataService.updateApplication(application.user_id, application.id, {
         status: newStatus
@@ -111,8 +113,11 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       setShowStatusChange(false);
       setStatusNote('');
       await loadHistory();
-    } catch (err) {
+    } catch (err: any) {
+      // Only logging this left the user clicking "Save New Status" with no
+      // visible response and no idea the write had failed.
       console.error('Status change error:', err);
+      setStatusError(err?.message || 'The status could not be updated. Please try again.');
     } finally {
       setUpdatingStatus(false);
     }
@@ -217,8 +222,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             Update Application Status
           </h4>
           <div className="form-group">
-            <label className="form-label">New Status</label>
+            <label className="form-label" htmlFor="status-change-new-status">New Status</label>
             <select
+              id="status-change-new-status"
               className="input-control"
               value={newStatus}
               onChange={e => setNewStatus(e.target.value as ApplicationStatus)}
@@ -229,8 +235,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Status Change Note <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span></label>
+            <label className="form-label" htmlFor="status-change-status-change-note-optional">Status Change Note <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span></label>
             <input
+              id="status-change-status-change-note-optional"
               type="text"
               className="input-control"
               placeholder="e.g. Completed technical round with engineering team."
@@ -238,6 +245,16 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               onChange={e => setStatusNote(e.target.value)}
             />
           </div>
+          {statusError && (
+            <p
+              role="alert"
+              className="form-error"
+              style={{ marginTop: '0.25rem' }}
+            >
+              {statusError}
+            </p>
+          )}
+
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
             <button
               type="button"

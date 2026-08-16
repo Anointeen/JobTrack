@@ -116,10 +116,11 @@ export const ProfileView: React.FC = () => {
         <form onSubmit={handleSubmit}>
           {/* Read Only Email */}
           <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-            <label className="form-label">Email Address (Read-only)</label>
+            <label className="form-label" htmlFor="profile-email-address-read-only">Email Address (Read-only)</label>
             <div style={{ position: 'relative' }}>
               <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
+              id="profile-email-address-read-only"
                 type="email"
                 className="input-control"
                 value={user?.email || ''}
@@ -134,12 +135,13 @@ export const ProfileView: React.FC = () => {
 
           <div className="form-row form-row-2">
             <div className="form-group">
-              <label className="form-label">
+              <label className="form-label" htmlFor="profile-full-name">
                 Full Name <span className="required">*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                 <input
+              id="profile-full-name"
                   type="text"
                   className="input-control"
                   placeholder="e.g. Alex Morgan"
@@ -152,10 +154,11 @@ export const ProfileView: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Professional Title</label>
+              <label className="form-label" htmlFor="profile-professional-title">Professional Title</label>
               <div style={{ position: 'relative' }}>
                 <Briefcase size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                 <input
+              id="profile-professional-title"
                   type="text"
                   className="input-control"
                   placeholder="e.g. Senior Product Designer"
@@ -169,10 +172,11 @@ export const ProfileView: React.FC = () => {
 
           <div className="form-row form-row-2">
             <div className="form-group">
-              <label className="form-label">Location</label>
+              <label className="form-label" htmlFor="profile-location">Location</label>
               <div style={{ position: 'relative' }}>
                 <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                 <input
+              id="profile-location"
                   type="text"
                   className="input-control"
                   placeholder="e.g. Austin, TX"
@@ -184,10 +188,11 @@ export const ProfileView: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Phone Number</label>
+              <label className="form-label" htmlFor="profile-phone-number">Phone Number</label>
               <div style={{ position: 'relative' }}>
                 <Phone size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
                 <input
+              id="profile-phone-number"
                   type="tel"
                   className="input-control"
                   placeholder="+1 (555) 012-3456"
@@ -200,10 +205,11 @@ export const ProfileView: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">LinkedIn Profile URL</label>
+            <label className="form-label" htmlFor="profile-linkedin-profile-url">LinkedIn Profile URL</label>
             <div style={{ position: 'relative' }}>
               <Linkedin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
+              id="profile-linkedin-profile-url"
                 type="url"
                 className="input-control"
                 placeholder="https://linkedin.com/in/alexmorgan"

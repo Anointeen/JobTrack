@@ -17,6 +17,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
   const [phone, setPhone] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (profile) {
@@ -33,6 +34,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
     if (!fullName) return;
 
     try {
+      setErrorMsg('');
       setSubmitting(true);
       await completeOnboarding({
         full_name: fullName,
@@ -42,8 +44,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         linkedin_url: linkedinUrl
       });
       onComplete();
-    } catch (err) {
+    } catch (err: any) {
+      // Onboarding is a blocking, non-dismissible modal: a failure that is only
+      // logged leaves the user staring at an unresponsive button with no way
+      // forward and no idea why.
       console.error('Onboarding submit error:', err);
+      setErrorMsg(err?.message || 'We could not save your profile. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -51,6 +57,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
   const handleSkipOptional = async () => {
     try {
+      setErrorMsg('');
       setSubmitting(true);
       await completeOnboarding({
         full_name: fullName || 'Job Seeker',
@@ -58,6 +65,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         location: location
       });
       onComplete();
+    } catch (err: any) {
+      // Previously this had no catch at all, so a failure became an unhandled
+      // promise rejection and the user was stranded silently.
+      console.error('Onboarding skip error:', err);
+      setErrorMsg(err?.message || 'We could not save your profile. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -92,14 +104,32 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         </p>
       </div>
 
+      {errorMsg && (
+        <div
+          role="alert"
+          style={{
+            padding: '0.75rem 1rem',
+            borderRadius: 'var(--radius-md)',
+            backgroundColor: 'var(--rose-50)',
+            border: '1px solid var(--rose-200)',
+            color: 'var(--rose-700)',
+            fontSize: '0.84375rem',
+            marginBottom: '1rem'
+          }}
+        >
+          {errorMsg}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label className="form-label">
+          <label className="form-label" htmlFor="onboarding-full-name">
             Full Name <span className="required">*</span>
           </label>
           <div style={{ position: 'relative' }}>
             <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
             <input
+              id="onboarding-full-name"
               type="text"
               className="input-control"
               placeholder="e.g. Alex Morgan"
@@ -113,10 +143,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
         <div className="form-row form-row-2">
           <div className="form-group">
-            <label className="form-label">Professional Title</label>
+            <label className="form-label" htmlFor="onboarding-professional-title">Professional Title</label>
             <div style={{ position: 'relative' }}>
               <Briefcase size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
+              id="onboarding-professional-title"
                 type="text"
                 className="input-control"
                 placeholder="e.g. Frontend Developer"
@@ -128,10 +159,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
           </div>
 
           <div className="form-group">
-            <label className="form-label">Location</label>
+            <label className="form-label" htmlFor="onboarding-location">Location</label>
             <div style={{ position: 'relative' }}>
               <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
               <input
+              id="onboarding-location"
                 type="text"
                 className="input-control"
                 placeholder="e.g. San Francisco, CA"
@@ -144,10 +176,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         </div>
 
         <div className="form-group">
-          <label className="form-label">Phone Number <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span></label>
+          <label className="form-label" htmlFor="onboarding-phone-number-optional">Phone Number <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span></label>
           <div style={{ position: 'relative' }}>
             <Phone size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
             <input
+              id="onboarding-phone-number-optional"
               type="tel"
               className="input-control"
               placeholder="+1 (555) 000-0000"
@@ -159,10 +192,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         </div>
 
         <div className="form-group">
-          <label className="form-label">LinkedIn Profile URL <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span></label>
+          <label className="form-label" htmlFor="onboarding-linkedin-profile-url-optional">LinkedIn Profile URL <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span></label>
           <div style={{ position: 'relative' }}>
             <Linkedin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
             <input
+              id="onboarding-linkedin-profile-url-optional"
               type="url"
               className="input-control"
               placeholder="https://linkedin.com/in/yourname"

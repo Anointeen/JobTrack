@@ -114,7 +114,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <form onSubmit={handleSubmit}>
         {mode === 'signup' && (
           <div className="form-group">
-            <label className="form-label">
+            <label className="form-label" htmlFor="auth-full-name">
               Full Name <span className="required">*</span>
             </label>
             <div style={{ position: 'relative' }}>
@@ -123,6 +123,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} 
               />
               <input
+              id="auth-full-name"
                 type="text"
                 className="input-control"
                 placeholder="e.g. Alex Morgan"
@@ -136,7 +137,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         )}
 
         <div className="form-group">
-          <label className="form-label">
+          <label className="form-label" htmlFor="auth-email-address">
             Email Address <span className="required">*</span>
           </label>
           <div style={{ position: 'relative' }}>
@@ -145,6 +146,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} 
             />
             <input
+              id="auth-email-address"
               type="email"
               className="input-control"
               placeholder="alex@example.com"
@@ -158,7 +160,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         <div className="form-group">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label className="form-label">
+            <label className="form-label" htmlFor="auth-password">
               Password <span className="required">*</span>
             </label>
             {mode === 'login' && onOpenForgotPassword && (
@@ -181,6 +183,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} 
             />
             <input
+              id="auth-password"
               type="password"
               className="input-control"
               placeholder="••••••••"
