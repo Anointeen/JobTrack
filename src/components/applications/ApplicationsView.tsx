@@ -10,11 +10,22 @@ import {
   ALL_STATUSES,
   SORT_OPTIONS,
   filterAndSortApplications,
+  hasActiveFilters as computeHasActiveFilters,
+  collectTags,
   slugToStatus,
   slugToSort,
+  slugToPriority,
+  slugToSource,
   statusToSlug,
+  priorityToSlug,
   daysUntil
 } from '../../lib/applicationFilters';
+import { PriorityChip, FollowUpChip, TagList } from './ApplicationMetadata';
+import {
+  ApplicationPriority,
+  APPLICATION_PRIORITIES,
+  APPLICATION_SOURCES
+} from '../../types';
 import {
   Plus,
   Search,
@@ -27,6 +38,7 @@ import {
   Calendar,
   Briefcase,
   AlertTriangle,
+  Compass,
   X
 } from 'lucide-react';
 
@@ -63,28 +75,66 @@ export const ApplicationsView: React.FC = () => {
   // (open dialogs, etc.) deliberately stays in component state.
   const query = searchParams.get('q') ?? '';
   const statusFilter = slugToStatus(searchParams.get('status'));
+  const priorityFilter = slugToPriority(searchParams.get('priority'));
+  const sourceFilter = slugToSource(searchParams.get('source'));
+  const tagFilter = searchParams.get('tag') ?? '';
   const sortBy = slugToSort(searchParams.get('sort'));
 
+  /**
+   * Writes filter changes to the query string.
+   *
+   * Discrete choices (status, priority, source, tag, sort) push a history
+   * entry, so Back and Forward step through them as the user expects. Free-text
+   * search replaces instead — pushing per keystroke would bury the previous
+   * page under dozens of entries.
+   */
   const updateParams = useCallback(
-    (changes: Record<string, string | null>) => {
+    (changes: Record<string, string | null>, options?: { replace?: boolean }) => {
       const next = new URLSearchParams(searchParams);
       for (const [key, value] of Object.entries(changes)) {
         if (value === null || value === '') next.delete(key);
         else next.set(key, value);
       }
-      setSearchParams(next, { replace: true });
+      setSearchParams(next, { replace: options?.replace ?? false });
     },
     [searchParams, setSearchParams]
   );
 
-  const hasActiveFilters = query.trim() !== '' || statusFilter !== 'All';
-
-  const filteredApplications = useMemo(
-    () => filterAndSortApplications(applications, { query, status: statusFilter, sort: sortBy }),
-    [applications, query, statusFilter, sortBy]
+  const filters = useMemo(
+    () => ({
+      query,
+      status: statusFilter,
+      priority: priorityFilter,
+      source: sourceFilter,
+      tag: tagFilter,
+      sort: sortBy
+    }),
+    [query, statusFilter, priorityFilter, sourceFilter, tagFilter, sortBy]
   );
 
-  const clearFilters = () => updateParams({ q: null, status: null });
+  const hasActiveFilters = computeHasActiveFilters(filters);
+
+  const filteredApplications = useMemo(
+    () => filterAndSortApplications(applications, filters),
+    [applications, filters]
+  );
+
+  /** Tag options come from the user's own applications, not a fixed list. */
+  const availableTags = useMemo(() => collectTags(applications), [applications]);
+
+  /**
+   * Tag matching is case-insensitive, so ?tag=remote must still select the
+   * stored "Remote" option — otherwise the <select> renders blank while the
+   * list is genuinely filtered, which reads as a bug.
+   */
+  const selectedTagOption = useMemo(() => {
+    const wanted = tagFilter.trim().toLowerCase();
+    if (!wanted) return '';
+    return availableTags.find(t => t.toLowerCase() === wanted) ?? tagFilter;
+  }, [tagFilter, availableTags]);
+
+  const clearFilters = () =>
+    updateParams({ q: null, status: null, priority: null, source: null, tag: null });
 
   // Preserve the current filters in the detail URL so closing returns here.
   const detailPath = (id: string) => `/applications/${id}${location.search}`;
@@ -132,7 +182,7 @@ export const ApplicationsView: React.FC = () => {
                 className="input-control"
                 placeholder="Search by company, job title, or location..."
                 value={query}
-                onChange={e => updateParams({ q: e.target.value })}
+                onChange={e => updateParams({ q: e.target.value }, { replace: true })}
                 style={{ paddingLeft: '2.375rem' }}
               />
             </div>
@@ -151,6 +201,69 @@ export const ApplicationsView: React.FC = () => {
               >
                 {SORT_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Metadata filters — each is URL-backed, so any combination is a
+              shareable link. */}
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: '140px', flex: '1 1 140px' }}>
+              <label htmlFor="filter-priority" style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                Priority
+              </label>
+              <select
+                id="filter-priority"
+                className="input-control"
+                value={priorityFilter === 'All' ? '' : priorityFilter}
+                onChange={e => updateParams({ priority: e.target.value ? priorityToSlug(e.target.value as ApplicationPriority) : null })}
+              >
+                <option value="">All priorities</option>
+                {APPLICATION_PRIORITIES.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: '160px', flex: '1 1 160px' }}>
+              <label htmlFor="filter-source" style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                Source
+              </label>
+              <select
+                id="filter-source"
+                className="input-control"
+                value={sourceFilter === 'All' ? '' : sourceFilter}
+                onChange={e => updateParams({ source: e.target.value || null })}
+              >
+                <option value="">All sources</option>
+                {APPLICATION_SOURCES.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: '160px', flex: '1 1 160px' }}>
+              <label htmlFor="filter-tag" style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                Tag
+              </label>
+              <select
+                id="filter-tag"
+                className="input-control"
+                value={selectedTagOption}
+                onChange={e => updateParams({ tag: e.target.value || null })}
+                disabled={availableTags.length === 0 && !tagFilter}
+              >
+                <option value="">
+                  {availableTags.length === 0 ? 'No tags yet' : 'All tags'}
+                </option>
+                {/* A tag from the URL that no longer exists stays selectable so
+                    the control never silently contradicts the address bar. */}
+                {selectedTagOption && !availableTags.includes(selectedTagOption) && (
+                  <option value={selectedTagOption}>{selectedTagOption}</option>
+                )}
+                {availableTags.map(t => (
+                  <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </div>
@@ -311,6 +424,7 @@ export const ApplicationsView: React.FC = () => {
                     <th scope="col" style={{ padding: '1rem 0.75rem', fontWeight: 600 }}>Location</th>
                     <th scope="col" style={{ padding: '1rem 0.75rem', fontWeight: 600 }}>Job Type</th>
                     <th scope="col" style={{ padding: '1rem 0.75rem', fontWeight: 600 }}>Status</th>
+                    <th scope="col" style={{ padding: '1rem 0.75rem', fontWeight: 600 }}>Priority</th>
                     <th scope="col" style={{ padding: '1rem 0.75rem', fontWeight: 600 }}>Applied</th>
                     <th scope="col" style={{ padding: '1rem 0.75rem', fontWeight: 600 }}>Deadline</th>
                     <th scope="col" style={{ padding: '1rem 1.25rem', fontWeight: 600, textAlign: 'right' }}>Actions</th>
@@ -336,6 +450,14 @@ export const ApplicationsView: React.FC = () => {
                           <div style={{ fontSize: '0.8125rem', color: 'var(--primary-600)', fontWeight: 600, marginTop: '2px' }}>
                             {app.company_name}
                           </div>
+                          {/* Tags and follow-up sit under the title so the row
+                              gains metadata without gaining more columns. */}
+                          {(app.tags?.length > 0 || app.follow_up_date) && (
+                            <div className="chip-list" style={{ marginTop: '0.375rem' }}>
+                              <FollowUpChip followUpDate={app.follow_up_date} compact />
+                              <TagList tags={app.tags ?? []} max={3} />
+                            </div>
+                          )}
                         </td>
                         <td style={{ padding: '1rem 0.75rem', color: 'var(--text-muted)' }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -348,6 +470,9 @@ export const ApplicationsView: React.FC = () => {
                         </td>
                         <td style={{ padding: '1rem 0.75rem' }}>
                           <Badge status={app.status} size="sm" />
+                        </td>
+                        <td style={{ padding: '1rem 0.75rem' }}>
+                          <PriorityChip priority={app.priority} showIcon={false} />
                         </td>
                         <td style={{ padding: '1rem 0.75rem', color: 'var(--text-muted)' }}>
                           {formatDate(app.application_date)}
@@ -412,7 +537,10 @@ export const ApplicationsView: React.FC = () => {
                         {app.company_name}
                       </p>
                     </div>
-                    <Badge status={app.status} size="sm" />
+                    <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem', flexShrink: 0 }}>
+                      <Badge status={app.status} size="sm" />
+                      <PriorityChip priority={app.priority} showIcon={false} />
+                    </span>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
@@ -430,7 +558,20 @@ export const ApplicationsView: React.FC = () => {
                         <span>Deadline: {tone.label}</span>
                       </div>
                     )}
+                    {app.source && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Compass size={14} color="var(--text-subtle)" />
+                        <span>Source: {app.source}</span>
+                      </div>
+                    )}
                   </div>
+
+                  {(app.follow_up_date || app.tags?.length > 0) && (
+                    <div className="chip-list" style={{ marginBottom: '1rem' }}>
+                      <FollowUpChip followUpDate={app.follow_up_date} />
+                      <TagList tags={app.tags ?? []} />
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
                     <button className="btn btn-secondary btn-sm" onClick={() => navigate(detailPath(app.id))}>

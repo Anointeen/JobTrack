@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
-import { Application, ApplicationInput, ApplicationStatus, JobType } from '../../types';
-import { Building2, Briefcase, MapPin, Calendar, Link as LinkIcon, User, Mail } from 'lucide-react';
+import {
+  Application,
+  ApplicationInput,
+  ApplicationPriority,
+  ApplicationSource,
+  ApplicationStatus,
+  APPLICATION_PRIORITIES,
+  APPLICATION_SOURCES,
+  JobType
+} from '../../types';
+import { normaliseTag, hasTag } from '../../lib/applicationFilters';
+import { TagList } from './ApplicationMetadata';
+import {
+  Building2, Briefcase, MapPin, Calendar, Link as LinkIcon, User, Mail,
+  Flag, Tag as TagIcon, CalendarClock, Plus
+} from 'lucide-react';
 
 interface ApplicationFormModalProps {
   isOpen: boolean;
@@ -30,6 +44,15 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
   const [recruiterEmail, setRecruiterEmail] = useState('');
   const [notes, setNotes] = useState('');
 
+  // --- Metadata (migration 0002) ---
+  const [priority, setPriority] = useState<ApplicationPriority>('Medium');
+  const [source, setSource] = useState<ApplicationSource | ''>('');
+  const [followUpDate, setFollowUpDate] = useState('');
+  const [followUpNote, setFollowUpNote] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagDraft, setTagDraft] = useState('');
+  const [tagNotice, setTagNotice] = useState('');
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -48,6 +71,11 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       setRecruiterName(initialData.recruiter_name || '');
       setRecruiterEmail(initialData.recruiter_email || '');
       setNotes(initialData.notes || '');
+      setPriority(initialData.priority || 'Medium');
+      setSource(initialData.source || '');
+      setFollowUpDate(initialData.follow_up_date || '');
+      setFollowUpNote(initialData.follow_up_note || '');
+      setTags(initialData.tags ? [...initialData.tags] : []);
     } else {
       // Reset form
       setCompanyName('');
@@ -63,9 +91,74 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       setRecruiterName('');
       setRecruiterEmail('');
       setNotes('');
+      // Matches the database defaults from migration 0002.
+      setPriority('Medium');
+      setSource('');
+      setFollowUpDate('');
+      setFollowUpNote('');
+      setTags([]);
     }
+    setTagDraft('');
+    setTagNotice('');
     setErrors({});
   }, [initialData, isOpen]);
+
+  /**
+   * Adds one or more tags from the draft input.
+   *
+   * Whitespace is trimmed and collapsed, commas split multiple tags at once,
+   * and duplicates are rejected case-insensitively so "Remote" and "remote"
+   * cannot both end up on the same application.
+   */
+  const commitTagDraft = () => {
+    const candidates = tagDraft.split(',').map(normaliseTag).filter(Boolean);
+    if (candidates.length === 0) {
+      setTagDraft('');
+      return;
+    }
+
+    const accepted: string[] = [];
+    const rejected: string[] = [];
+    const next = [...tags];
+
+    for (const candidate of candidates) {
+      if (hasTag(next, candidate)) {
+        rejected.push(candidate);
+        continue;
+      }
+      next.push(candidate);
+      accepted.push(candidate);
+    }
+
+    setTags(next);
+    setTagDraft('');
+    setTagNotice(
+      rejected.length > 0
+        ? `Already added: ${rejected.join(', ')}`
+        : accepted.length > 1
+          ? `Added ${accepted.length} tags.`
+          : ''
+    );
+  };
+
+  const removeTag = (tag: string) => {
+    setTags(prev => prev.filter(t => t !== tag));
+    setTagNotice('');
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Enter and comma commit; Enter must not submit the surrounding form.
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      commitTagDraft();
+      return;
+    }
+    // Backspace on an empty input removes the last tag, a common chip idiom.
+    if (e.key === 'Backspace' && tagDraft === '' && tags.length > 0) {
+      e.preventDefault();
+      removeTag(tags[tags.length - 1]);
+    }
+  };
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -116,12 +209,38 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       errs.deadline = 'Deadline cannot be earlier than the application date.';
     }
 
+    // Mirrors applications_follow_up_after_application_date_check from
+    // migration 0002, so the user sees this sentence rather than a raw
+    // PostgreSQL 23514 constraint violation.
+    if (followUpDate && applicationDate && followUpDate < applicationDate) {
+      errs.followUpDate = 'Follow-up date cannot be earlier than the application date.';
+    }
+
+    // A note with no date would be silently unreachable: nothing surfaces a
+    // follow-up note unless there is a date to attach it to.
+    if (followUpNote.trim() && !followUpDate) {
+      errs.followUpDate = 'Add a follow-up date so this note can be scheduled.';
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // A tag still sitting in the input is clearly intended — commit it rather
+    // than silently discarding it on submit.
+    const pendingTags = tagDraft.split(',').map(normaliseTag).filter(Boolean);
+    const finalTags = [...tags];
+    for (const candidate of pendingTags) {
+      if (!hasTag(finalTags, candidate)) finalTags.push(candidate);
+    }
+    if (pendingTags.length > 0) {
+      setTags(finalTags);
+      setTagDraft('');
+    }
+
     if (!validate()) return;
 
     try {
@@ -139,7 +258,14 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
         deadline: deadline || undefined,
         recruiter_name: recruiterName.trim() || undefined,
         recruiter_email: recruiterEmail.trim() || undefined,
-        notes: notes.trim() || undefined
+        notes: notes.trim() || undefined,
+        // Metadata. `null` (not undefined) clears an optional value on update,
+        // since undefined keys are dropped before reaching PostgREST.
+        priority,
+        source: source || null,
+        tags: finalTags,
+        follow_up_date: followUpDate || null,
+        follow_up_note: followUpNote.trim() || null
       });
       onClose();
     } catch (err: any) {
@@ -385,6 +511,127 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
             </div>
             {errors.recruiterEmail && <span className="form-error">{errors.recruiterEmail}</span>}
           </div>
+        </div>
+
+        {/* Tracking metadata */}
+        <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '1.25rem 0' }} />
+        <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem' }}>
+          Tracking &amp; Follow-up
+        </h4>
+
+        <div className="form-row form-row-2">
+          <div className="form-group">
+            <label className="form-label" htmlFor="application-priority">Priority</label>
+            <div style={{ position: 'relative' }}>
+              <Flag size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+              <select
+                id="application-priority"
+                className="input-control"
+                value={priority}
+                onChange={e => setPriority(e.target.value as ApplicationPriority)}
+                style={{ paddingLeft: '2.375rem' }}
+              >
+                {APPLICATION_PRIORITIES.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="application-source">
+              Source <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span>
+            </label>
+            <select
+              id="application-source"
+              className="input-control"
+              value={source}
+              onChange={e => setSource(e.target.value as ApplicationSource | '')}
+            >
+              <option value="">Not specified</option>
+              {APPLICATION_SOURCES.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="form-row form-row-2">
+          <div className="form-group">
+            <label className="form-label" htmlFor="application-follow-up-date">
+              Follow-up Date <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <CalendarClock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+              <input
+                id="application-follow-up-date"
+                type="date"
+                className={`input-control ${errors.followUpDate ? 'input-error' : ''}`}
+                value={followUpDate}
+                min={applicationDate || undefined}
+                onChange={e => setFollowUpDate(e.target.value)}
+                style={{ paddingLeft: '2.375rem' }}
+              />
+            </div>
+            {errors.followUpDate && <span className="form-error">{errors.followUpDate}</span>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="application-follow-up-note">
+              Follow-up Note <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span>
+            </label>
+            <input
+              id="application-follow-up-note"
+              type="text"
+              className="input-control"
+              placeholder="e.g. Email Sarah if there is no reply"
+              value={followUpNote}
+              onChange={e => setFollowUpNote(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="application-tag-input">
+            Tags <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span>
+          </label>
+
+          {tags.length > 0 && (
+            <div style={{ marginBottom: '0.5rem' }}>
+              <TagList tags={tags} onRemove={removeTag} />
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
+              <TagIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} />
+              <input
+                id="application-tag-input"
+                type="text"
+                className="input-control"
+                placeholder="e.g. Dream Job, Remote, Referral"
+                value={tagDraft}
+                onChange={e => { setTagDraft(e.target.value); setTagNotice(''); }}
+                onKeyDown={handleTagKeyDown}
+                onBlur={commitTagDraft}
+                aria-describedby="application-tag-help"
+                style={{ paddingLeft: '2.375rem' }}
+              />
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={commitTagDraft}
+              disabled={!tagDraft.trim()}
+            >
+              <Plus size={16} /> Add
+            </button>
+          </div>
+
+          <span id="application-tag-help" style={{ fontSize: '0.75rem', color: tagNotice ? 'var(--amber-600)' : 'var(--text-subtle)' }}>
+            {tagNotice || 'Press Enter or comma to add. Tags are your own labels — duplicates are ignored.'}
+          </span>
         </div>
 
         {/* Notes */}

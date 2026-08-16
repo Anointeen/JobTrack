@@ -15,8 +15,13 @@ import {
   Edit3,
   Trash2,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Flag,
+  Compass,
+  CalendarClock,
+  Tag as TagIcon
 } from 'lucide-react';
+import { PriorityChip, FollowUpChip, TagList } from './ApplicationMetadata';
 
 interface ApplicationDetailModalProps {
   application: Application | null;
@@ -282,6 +287,74 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
           </div>
           <p style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{formatDate(application.application_date)}</p>
         </div>
+
+        <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '6px' }}>
+            <Flag size={16} /> Priority
+          </div>
+          <PriorityChip priority={application.priority} />
+        </div>
+
+        <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '4px' }}>
+            <Compass size={16} /> Source
+          </div>
+          {application.source ? (
+            <p style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{application.source}</p>
+          ) : (
+            <p style={{ color: 'var(--text-subtle)', fontStyle: 'italic', fontSize: '0.875rem' }}>
+              Not specified
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Follow-up */}
+      <div style={{ marginBottom: '1.75rem' }}>
+        <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <CalendarClock size={18} color="var(--text-muted)" /> Follow-up
+        </h4>
+
+        {application.follow_up_date ? (
+          <div
+            style={{
+              padding: '0.875rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'var(--bg-subtle)',
+              border: '1px solid var(--border-color)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+              <FollowUpChip followUpDate={application.follow_up_date} />
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                {formatDate(application.follow_up_date)}
+              </span>
+            </div>
+            {application.follow_up_note && (
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-main)', marginTop: '0.5rem', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                {application.follow_up_note}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-subtle)', fontStyle: 'italic', lineHeight: 1.5 }}>
+            No follow-up scheduled — add one from “Edit Application” to track when to chase this up.
+          </p>
+        )}
+      </div>
+
+      {/* Tags */}
+      <div style={{ marginBottom: '1.75rem' }}>
+        <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <TagIcon size={18} color="var(--text-muted)" /> Tags
+        </h4>
+        {application.tags && application.tags.length > 0 ? (
+          <TagList tags={application.tags} />
+        ) : (
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-subtle)', fontStyle: 'italic' }}>
+            No tags yet.
+          </p>
+        )}
       </div>
 
       {/* Posting Link & Recruiter */}

@@ -122,6 +122,21 @@
   --badge-withdrawn-bg: #e2e8f0;
   --badge-withdrawn-text: #475569;
   --badge-withdrawn-dot: #64748b;
+
+  /* Metadata chips (priority, follow-up urgency, tags).
+     Dedicated light/dark pairs like the status badges above — the raw --rose-700
+     style tokens are dark ink meant for light surfaces and go unreadable when
+     the dark theme flips the backgrounds. */
+  --meta-danger-bg: #ffe4e6;
+  --meta-danger-text: #be123c;
+  --meta-warn-bg: #fef3c7;
+  --meta-warn-text: #b45309;
+  --meta-neutral-bg: #f1f5f9;
+  --meta-neutral-text: #475569;
+
+  --tag-bg: #eef2ff;
+  --tag-text: #4338ca;
+  --tag-border: #c7d2fe;
 }
 
 /* Dark Theme Overrides */
@@ -210,6 +225,18 @@
   --badge-withdrawn-bg: #334155;
   --badge-withdrawn-text: #cbd5e1;
   --badge-withdrawn-dot: #94a3b8;
+
+  /* Metadata chips — light ink on deep tinted surfaces. */
+  --meta-danger-bg: #881337;
+  --meta-danger-text: #fca5a5;
+  --meta-warn-bg: #78350f;
+  --meta-warn-text: #fde68a;
+  --meta-neutral-bg: #334155;
+  --meta-neutral-text: #cbd5e1;
+
+  --tag-bg: rgba(99, 102, 241, 0.18);
+  --tag-text: #c7d2fe;
+  --tag-border: rgba(99, 102, 241, 0.38);
 }
 
 /* Base Styles */
@@ -534,6 +561,69 @@ a.btn {
   color: var(--badge-withdrawn-text);
 }
 .badge-withdrawn .badge-dot { background-color: var(--badge-withdrawn-dot); }
+
+/* Metadata chips ------------------------------------------------------------
+   Used for priority, follow-up urgency and tags. Chips wrap onto new lines
+   rather than widening their container, and a single very long tag ellipsises
+   instead of forcing horizontal page scroll. */
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  max-width: 100%;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.chip > .chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip-danger  { background-color: var(--meta-danger-bg);  color: var(--meta-danger-text); }
+.chip-warn    { background-color: var(--meta-warn-bg);    color: var(--meta-warn-text); }
+.chip-neutral { background-color: var(--meta-neutral-bg); color: var(--meta-neutral-text); }
+
+.chip-tag {
+  background-color: var(--tag-bg);
+  color: var(--tag-text);
+  border-color: var(--tag-border);
+  font-weight: 500;
+}
+
+/* Remove control inside an editable tag chip. */
+.chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.chip-remove:hover {
+  opacity: 1;
+}
 
 /* Modal & Backdrop */
 .modal-backdrop {

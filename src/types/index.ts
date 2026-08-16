@@ -148,6 +148,7 @@ export type SortOption =
   | 'oldest'
   | 'recently_updated'
   | 'deadline'
+  | 'priority'
   | 'company';
 
 export interface ApplicationFilterOptions {

@@ -1,4 +1,12 @@
-import { Application, ApplicationStatus, SortOption } from '../types';
+import {
+  Application,
+  ApplicationPriority,
+  ApplicationSource,
+  ApplicationStatus,
+  APPLICATION_PRIORITIES,
+  APPLICATION_SOURCES,
+  SortOption
+} from '../types';
 
 export const ALL_STATUSES: ApplicationStatus[] = [
   'Saved', 'Applied', 'Assessment', 'Interview', 'Offer', 'Rejected', 'Withdrawn'
@@ -25,8 +33,16 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'oldest', label: 'Oldest applied' },
   { value: 'recently_updated', label: 'Recently updated' },
   { value: 'deadline', label: 'Deadline soonest' },
+  { value: 'priority', label: 'Priority (High first)' },
   { value: 'company', label: 'Company A–Z' }
 ];
+
+/** Descending importance, so a numeric sort puts High first. */
+const PRIORITY_RANK: Record<ApplicationPriority, number> = {
+  High: 0,
+  Medium: 1,
+  Low: 2
+};
 
 // --- URL <-> value mapping -------------------------------------------------
 
@@ -46,6 +62,60 @@ export const slugToSort = (slug: string | null): SortOption => {
   if (!slug) return 'newest';
   const match = SORT_OPTIONS.find(o => o.value === slug.trim().toLowerCase());
   return match ? match.value : 'newest';
+};
+
+/** 'High' -> 'high'. */
+export const priorityToSlug = (priority: ApplicationPriority): string => priority.toLowerCase();
+
+/** Parses a ?priority= value. Unknown or missing values fall back to 'All'. */
+export const slugToPriority = (slug: string | null): ApplicationPriority | 'All' => {
+  if (!slug) return 'All';
+  const normalised = slug.trim().toLowerCase();
+  if (normalised === 'all') return 'All';
+  return APPLICATION_PRIORITIES.find(p => p.toLowerCase() === normalised) ?? 'All';
+};
+
+/**
+ * Sources keep their display casing and spaces in the URL (?source=LinkedIn,
+ * ?source=Company%20Website) so links stay readable. Parsing is
+ * case-insensitive and tolerates '+' from form-encoded query strings.
+ */
+export const sourceToSlug = (source: ApplicationSource): string => source;
+
+export const slugToSource = (slug: string | null): ApplicationSource | 'All' => {
+  if (!slug) return 'All';
+  const normalised = slug.trim().replace(/\+/g, ' ').toLowerCase();
+  if (normalised === 'all') return 'All';
+  return APPLICATION_SOURCES.find(s => s.toLowerCase() === normalised) ?? 'All';
+};
+
+// --- Tags ------------------------------------------------------------------
+
+/** Trims surrounding whitespace and collapses internal runs to single spaces. */
+export const normaliseTag = (raw: string): string => raw.trim().replace(/\s+/g, ' ');
+
+/** Comparison key for tags — case-insensitive, whitespace-normalised. */
+export const tagKey = (raw: string): string => normaliseTag(raw).toLowerCase();
+
+/** True when `tag` is already present, compared case-insensitively. */
+export const hasTag = (tags: readonly string[], tag: string): boolean => {
+  const key = tagKey(tag);
+  return tags.some(t => tagKey(t) === key);
+};
+
+/**
+ * Every distinct tag across the given applications, de-duplicated
+ * case-insensitively (first spelling seen wins) and sorted for stable display.
+ */
+export const collectTags = (apps: Application[]): string[] => {
+  const seen = new Map<string, string>();
+  for (const app of apps) {
+    for (const tag of app.tags ?? []) {
+      const key = tagKey(tag);
+      if (key && !seen.has(key)) seen.set(key, normaliseTag(tag));
+    }
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
 };
 
 // --- Dates -----------------------------------------------------------------
@@ -68,13 +138,56 @@ export const startOfToday = (): number => {
   return d.getTime();
 };
 
-/** Whole days from today until `date`. Negative means already past. */
-export const daysUntil = (value?: string | null): number | null => {
+/**
+ * Parses a value to local midnight of the day it denotes.
+ *
+ * A date-only 'YYYY-MM-DD' string must be built from its parts rather than
+ * passed to `new Date()`: the Date constructor treats date-only ISO strings as
+ * UTC midnight, which resolves to the *previous* calendar day in any timezone
+ * behind UTC. Comparing that against local midnight made today's deadlines and
+ * follow-ups report as overdue for users west of Greenwich.
+ *
+ * Full timestamps carry their own offset, so they are parsed normally and then
+ * floored to local midnight.
+ */
+const parseLocalDayMs = (value?: string | null): number | null => {
+  if (!value) return null;
+
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (dateOnly) {
+    const local = new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+    return Number.isNaN(local.getTime()) ? null : local.getTime();
+  }
+
   const ms = parseDateMs(value);
   if (ms === null) return null;
-  const target = new Date(ms);
-  target.setHours(0, 0, 0, 0);
-  return Math.round((target.getTime() - startOfToday()) / 86_400_000);
+  const floored = new Date(ms);
+  floored.setHours(0, 0, 0, 0);
+  return floored.getTime();
+};
+
+/** Whole days from today until `date`. Negative means already past. */
+export const daysUntil = (value?: string | null): number | null => {
+  const ms = parseLocalDayMs(value);
+  if (ms === null) return null;
+  return Math.round((ms - startOfToday()) / 86_400_000);
+};
+
+// --- Follow-up state -------------------------------------------------------
+
+export type FollowUpState = 'none' | 'overdue' | 'today' | 'upcoming';
+
+/**
+ * Deterministic classification of an application's follow-up date, relative to
+ * local midnight today. 'none' when no date is set — callers use that to hide
+ * follow-up UI entirely rather than rendering a placeholder.
+ */
+export const followUpState = (value?: string | null): FollowUpState => {
+  const days = daysUntil(value);
+  if (days === null) return 'none';
+  if (days < 0) return 'overdue';
+  if (days === 0) return 'today';
+  return 'upcoming';
 };
 
 // --- Filtering & sorting ---------------------------------------------------
@@ -82,8 +195,22 @@ export const daysUntil = (value?: string | null): number | null => {
 export interface ApplicationFilters {
   query: string;
   status: ApplicationStatus | 'All';
+  priority: ApplicationPriority | 'All';
+  source: ApplicationSource | 'All';
+  /** Raw tag text; matched case-insensitively. Empty means "any tag". */
+  tag: string;
   sort: SortOption;
 }
+
+/** Filter values with nothing applied — the baseline for "no active filters". */
+export const EMPTY_FILTERS: ApplicationFilters = {
+  query: '',
+  status: 'All',
+  priority: 'All',
+  source: 'All',
+  tag: '',
+  sort: 'newest'
+};
 
 /** Matches company, job title and location — all case-insensitive. */
 export const matchesQuery = (app: Application, rawQuery: string): boolean => {
@@ -125,6 +252,16 @@ export const sortApplications = (apps: Application[], sort: SortOption): Applica
         return aMs - bMs;
       });
 
+    case 'priority':
+      // High -> Medium -> Low. Ties fall back to company name so the order is
+      // stable. An unrecognised value ranks last rather than producing NaN.
+      return sorted.sort((a, b) => {
+        const aRank = PRIORITY_RANK[a.priority] ?? Number.MAX_SAFE_INTEGER;
+        const bRank = PRIORITY_RANK[b.priority] ?? Number.MAX_SAFE_INTEGER;
+        if (aRank !== bRank) return aRank - bRank;
+        return a.company_name.localeCompare(b.company_name);
+      });
+
     case 'company':
       return sorted.sort((a, b) => a.company_name.localeCompare(b.company_name));
 
@@ -138,13 +275,27 @@ export const sortApplications = (apps: Application[], sort: SortOption): Applica
   }
 };
 
+/**
+ * All filters combine with AND. Pure and side-effect free: same inputs always
+ * produce the same output, which keeps this directly unit-testable.
+ */
+export const matchesFilters = (app: Application, filters: ApplicationFilters): boolean => {
+  if (filters.status !== 'All' && app.status !== filters.status) return false;
+  if (filters.priority !== 'All' && app.priority !== filters.priority) return false;
+  if (filters.source !== 'All' && app.source !== filters.source) return false;
+  if (filters.tag.trim() && !hasTag(app.tags ?? [], filters.tag)) return false;
+  return matchesQuery(app, filters.query);
+};
+
 export const filterAndSortApplications = (
   apps: Application[],
   filters: ApplicationFilters
-): Application[] => {
-  const filtered = apps.filter(app => {
-    if (filters.status !== 'All' && app.status !== filters.status) return false;
-    return matchesQuery(app, filters.query);
-  });
-  return sortApplications(filtered, filters.sort);
-};
+): Application[] => sortApplications(apps.filter(app => matchesFilters(app, filters)), filters.sort);
+
+/** True when anything other than sort order is narrowing the list. */
+export const hasActiveFilters = (filters: ApplicationFilters): boolean =>
+  filters.query.trim() !== '' ||
+  filters.status !== 'All' ||
+  filters.priority !== 'All' ||
+  filters.source !== 'All' ||
+  filters.tag.trim() !== '';
