@@ -23,7 +23,7 @@ interface DatabaseErrorLike {
   hint?: string;
 }
 
-/** Constraint name -> message. Mirrors migrations 0001 and 0002. */
+/** Constraint name -> message. Mirrors migrations 0001, 0002 and 0003. */
 const CONSTRAINT_MESSAGES: Record<string, string> = {
   applications_priority_check:
     'Priority must be Low, Medium or High.',
@@ -33,8 +33,18 @@ const CONSTRAINT_MESSAGES: Record<string, string> = {
     'That status is not one of the supported options.',
   applications_job_type_check:
     'That job type is not one of the supported options.',
+  // Retained: the deprecated salary_min/salary_max pair still exists and is
+  // still constrained, even though the current form no longer writes it.
   applications_salary_range_check:
     'Maximum salary cannot be lower than minimum salary.',
+  applications_salary_amount_check:
+    'Salary cannot be negative.',
+  applications_salary_currency_check:
+    'That currency is not one of the supported options.',
+  applications_salary_period_check:
+    'Salary period must be per year or per month.',
+  applications_salary_amount_is_labelled_check:
+    'Choose a currency and a payment period for this salary.',
   applications_deadline_after_application_date_check:
     'Deadline cannot be earlier than the application date.',
   applications_follow_up_after_application_date_check:

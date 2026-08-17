@@ -235,17 +235,18 @@ describe('metadata validation', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  it('rejects a maximum salary below the minimum', async () => {
+  it('rejects a negative salary', async () => {
     const { onSave, user } = setup();
     await fillRequired(user);
-    await user.type(screen.getByLabelText(/salary min/i), '90000');
-    await user.type(screen.getByLabelText(/salary max/i), '50000');
-    await user.click(screen.getByRole('button', { name: /save application/i }));
+    // A negative value has to be set directly: type="number" with min="0" makes
+    // the browser refuse the keystroke, so typing would never reach validation.
+    fireEvent.change(screen.getByLabelText(/salary amount/i), { target: { value: '-5000' } });
+    fireEvent.submit(submitTarget());
 
-    expect(await screen.findByText(/maximum salary cannot be lower than minimum salary/i))
-      .toBeInTheDocument();
+    expect(await screen.findByText(/salary cannot be negative/i)).toBeInTheDocument();
     expect(onSave).not.toHaveBeenCalled();
   });
+
 
   it('rejects an invalid recruiter email', async () => {
     const { onSave, user } = setup();
@@ -345,6 +346,179 @@ describe('editing an existing application', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][0].tags).toEqual([]);
+  });
+});
+
+/**
+ * Salary carries a currency and a payment period (migration 0003). Nothing may
+ * assume US Dollars per year, and clearing the amount must clear all three
+ * columns rather than leaving a stale figure behind.
+ */
+describe('salary currency and payment period', () => {
+  const enterSalary = async (
+    user: ReturnType<typeof userEvent.setup>,
+    amount: string,
+    currency: string,
+    period: RegExp
+  ) => {
+    await user.selectOptions(screen.getByLabelText(/currency/i), currency);
+    await user.clear(screen.getByLabelText(/salary amount/i));
+    await user.type(screen.getByLabelText(/salary amount/i), amount);
+    await user.click(screen.getByRole('radio', { name: period }));
+  };
+
+  const savedPayload = async (onSave: ReturnType<typeof setup>['onSave']) => {
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    return onSave.mock.calls[0][0];
+  };
+
+  it('offers every required currency plus an Other option', () => {
+    setup();
+    const options = within(screen.getByLabelText(/currency/i))
+      .getAllByRole('option')
+      .map(o => (o as HTMLOptionElement).value);
+
+    for (const code of ['USD', 'NGN', 'GBP', 'EUR', 'CAD', 'AUD']) {
+      expect(options).toContain(code);
+    }
+    // ISO 4217's "no currency" code backs the Other option.
+    expect(options).toContain('XXX');
+  });
+
+  it('saves USD per year', async () => {
+    const { onSave, user } = setup();
+    await fillRequired(user);
+    await enterSalary(user, '80000', 'USD', /per year/i);
+    await user.click(screen.getByRole('button', { name: /save application/i }));
+
+    const payload = await savedPayload(onSave);
+    expect(payload.salary_amount).toBe(80000);
+    expect(payload.salary_currency).toBe('USD');
+    expect(payload.salary_period).toBe('year');
+  });
+
+  it('saves NGN per month', async () => {
+    const { onSave, user } = setup();
+    await fillRequired(user);
+    await enterSalary(user, '500000', 'NGN', /per month/i);
+    await user.click(screen.getByRole('button', { name: /save application/i }));
+
+    const payload = await savedPayload(onSave);
+    expect(payload.salary_amount).toBe(500000);
+    expect(payload.salary_currency).toBe('NGN');
+    expect(payload.salary_period).toBe('month');
+  });
+
+  it('saves GBP per year', async () => {
+    const { onSave, user } = setup();
+    await fillRequired(user);
+    await enterSalary(user, '65000', 'GBP', /per year/i);
+    await user.click(screen.getByRole('button', { name: /save application/i }));
+
+    const payload = await savedPayload(onSave);
+    expect(payload.salary_amount).toBe(65000);
+    expect(payload.salary_currency).toBe('GBP');
+    expect(payload.salary_period).toBe('year');
+  });
+
+  it('lets the currency be chosen independently of the amount and period', async () => {
+    const { onSave, user } = setup();
+    await fillRequired(user);
+    // Amount first, currency last: changing the currency must not disturb either.
+    await user.type(screen.getByLabelText(/salary amount/i), '9500');
+    await user.click(screen.getByRole('radio', { name: /per month/i }));
+    await user.selectOptions(screen.getByLabelText(/currency/i), 'AUD');
+    await user.click(screen.getByRole('button', { name: /save application/i }));
+
+    const payload = await savedPayload(onSave);
+    expect(payload).toMatchObject({
+      salary_amount: 9500, salary_currency: 'AUD', salary_period: 'month'
+    });
+  });
+
+  it('defaults to per year and saves nothing when no amount is entered', async () => {
+    const { onSave, user } = setup();
+    expect(screen.getByRole('radio', { name: /per year/i })).toBeChecked();
+
+    await fillRequired(user);
+    await user.click(screen.getByRole('button', { name: /save application/i }));
+
+    const payload = await savedPayload(onSave);
+    expect(payload.salary_amount).toBeNull();
+    expect(payload.salary_currency).toBeNull();
+    expect(payload.salary_period).toBeNull();
+  });
+
+  it('populates the salary fields when editing', () => {
+    setup({
+      initialData: makeApplication({
+        salary_amount: 500000, salary_currency: 'NGN', salary_period: 'month'
+      })
+    });
+
+    expect(screen.getByLabelText(/salary amount/i)).toHaveValue(500000);
+    expect(screen.getByLabelText(/currency/i)).toHaveValue('NGN');
+    expect(screen.getByRole('radio', { name: /per month/i })).toBeChecked();
+  });
+
+  it('keeps the currency and period when only the amount is edited', async () => {
+    const { onSave, user } = setup({
+      initialData: makeApplication({
+        salary_amount: 500000, salary_currency: 'NGN', salary_period: 'month'
+      })
+    });
+
+    await user.clear(screen.getByLabelText(/salary amount/i));
+    await user.type(screen.getByLabelText(/salary amount/i), '650000');
+    await user.click(screen.getByRole('button', { name: /update application/i }));
+
+    const payload = await savedPayload(onSave);
+    expect(payload).toMatchObject({
+      salary_amount: 650000, salary_currency: 'NGN', salary_period: 'month'
+    });
+  });
+
+  it('clears all three columns when the amount is cleared', async () => {
+    const { onSave, user } = setup({
+      initialData: makeApplication({
+        salary_amount: 80000, salary_currency: 'USD', salary_period: 'year'
+      })
+    });
+
+    await user.clear(screen.getByLabelText(/salary amount/i));
+    await user.click(screen.getByRole('button', { name: /update application/i }));
+
+    const payload = await savedPayload(onSave);
+    // null, not undefined: undefined keys never reach PostgREST, so the old
+    // salary would survive the update.
+    expect(payload.salary_amount).toBeNull();
+    expect(payload.salary_currency).toBeNull();
+    expect(payload.salary_period).toBeNull();
+  });
+
+  it('does not break an application saved before the currency change', async () => {
+    const legacy = makeApplication({
+      salary_min: 140000, salary_max: 180000,
+      salary_amount: null, salary_currency: null, salary_period: null
+    });
+    const { onSave, user } = setup({ initialData: legacy });
+
+    // The old lower bound is offered as the starting figure, and the user is
+    // told what the row used to hold rather than losing the range silently.
+    expect(screen.getByLabelText(/salary amount/i)).toHaveValue(140000);
+    expect(screen.getByText(/previously recorded as 140,000 - 180,000 \/ year/i))
+      .toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText(/currency/i), 'USD');
+    await user.click(screen.getByRole('button', { name: /update application/i }));
+
+    const payload = await savedPayload(onSave);
+    expect(payload).toMatchObject({
+      salary_amount: 140000, salary_currency: 'USD', salary_period: 'year'
+    });
+    // The unlabelled pair is retired for this row, on the user's own save.
+    expect(payload.salary_min).toBeNull();
+    expect(payload.salary_max).toBeNull();
   });
 });
 

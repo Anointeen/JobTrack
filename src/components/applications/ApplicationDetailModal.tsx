@@ -22,6 +22,7 @@ import {
   Tag as TagIcon
 } from 'lucide-react';
 import { PriorityChip, FollowUpChip, TagList } from './ApplicationMetadata';
+import { formatSalary } from '../../lib/salary';
 
 interface ApplicationDetailModalProps {
   application: Application | null;
@@ -131,13 +132,6 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
     } catch {
       return dateStr;
     }
-  };
-
-  const formatSalary = (min?: number, max?: number) => {
-    if (!min && !max) return 'Not specified';
-    if (min && max) return `$${min.toLocaleString()} - $${max.toLocaleString()} / year`;
-    if (min) return `From $${min.toLocaleString()} / year`;
-    return `Up to $${max?.toLocaleString()} / year`;
   };
 
   const allStatuses: ApplicationStatus[] = [
@@ -293,9 +287,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
         <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8125rem', marginBottom: '4px' }}>
-            <DollarSign size={16} /> Salary Range
+            <DollarSign size={16} /> Salary
           </div>
-          <p style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{formatSalary(application.salary_min, application.salary_max)}</p>
+          <p style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{formatSalary(application)}</p>
         </div>
 
         <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>

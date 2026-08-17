@@ -330,7 +330,7 @@ export const ApplicationsView: React.FC = () => {
         <div
           role="alert"
           className="card"
-          style={{ borderColor: 'var(--rose-500)', backgroundColor: 'var(--rose-50)', color: 'var(--rose-700)' }}
+          style={{ borderColor: 'var(--rose-500)', backgroundColor: 'var(--meta-danger-bg)', color: 'var(--meta-danger-text)' }}
         >
           <strong>We couldn't load your applications.</strong>
           <p style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>{error}</p>
@@ -363,7 +363,7 @@ export const ApplicationsView: React.FC = () => {
           </h2>
           <p style={{ fontSize: '0.9375rem', color: 'var(--text-muted)', maxWidth: '460px', margin: '0 auto 1.25rem auto', lineHeight: 1.6 }}>
             Add your first application to start tracking company details, deadlines, salary
-            ranges and every status change in one place.
+            and every status change in one place.
           </p>
           <ul
             style={{
@@ -372,7 +372,7 @@ export const ApplicationsView: React.FC = () => {
               display: 'flex', flexDirection: 'column', gap: '0.5rem'
             }}
           >
-            <li>• Record the role, company, location and salary range.</li>
+            <li>• Record the role, company, location and salary in any currency.</li>
             <li>• Set a deadline so it appears in your dashboard reminders.</li>
             <li>• Update the status as you progress — history is kept automatically.</li>
           </ul>
@@ -609,7 +609,7 @@ export const ApplicationsView: React.FC = () => {
           }}
         >
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', padding: '1.5rem', borderRadius: '16px', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--rose-50)', color: 'var(--rose-600)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--meta-danger-bg)', color: 'var(--rose-600)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
               <AlertTriangle size={24} />
             </div>
             <h2 id="confirm-delete-title" style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-heading)' }}>

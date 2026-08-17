@@ -11,11 +11,18 @@ interface UpcomingDeadlinesProps {
   limit?: number;
 }
 
+/**
+ * The --meta-* roles are defined separately for light and dark. The raw palette
+ * pairs used here before were not: --amber-50 and --rose-50 are redefined for
+ * dark mode but --amber-700 and --rose-700 are not, so these badges measured
+ * 3.08:1 and 2.71:1 against a dark surface — below the 4.5:1 this 12px bold
+ * text needs. The role tokens clear 4.5:1 in both themes.
+ */
 const urgency = (days: number): { color: string; bg: string; label: string } => {
-  if (days === 0) return { color: 'var(--rose-700)', bg: 'var(--rose-50)', label: 'Due today' };
-  if (days === 1) return { color: 'var(--rose-700)', bg: 'var(--rose-50)', label: 'Due tomorrow' };
-  if (days <= 7) return { color: 'var(--amber-700)', bg: 'var(--amber-50)', label: `${days} days left` };
-  return { color: 'var(--text-muted)', bg: 'var(--bg-subtle)', label: `${days} days left` };
+  if (days === 0) return { color: 'var(--meta-danger-text)', bg: 'var(--meta-danger-bg)', label: 'Due today' };
+  if (days === 1) return { color: 'var(--meta-danger-text)', bg: 'var(--meta-danger-bg)', label: 'Due tomorrow' };
+  if (days <= 7) return { color: 'var(--meta-warn-text)', bg: 'var(--meta-warn-bg)', label: `${days} days left` };
+  return { color: 'var(--meta-neutral-text)', bg: 'var(--meta-neutral-bg)', label: `${days} days left` };
 };
 
 const formatDate = (value?: string) => {

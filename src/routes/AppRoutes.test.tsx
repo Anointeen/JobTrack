@@ -142,8 +142,9 @@ describe('unauthenticated access to protected routes', () => {
     // Exact comparison, not toHaveTextContent: that does a substring match, so
     // '/dashboard' would satisfy an assertion for '/' and hide the failure.
     await waitFor(() => expect(screen.getByTestId('pathname').textContent).toBe('/'));
-    // The landing page is what actually rendered.
-    expect(await screen.findAllByRole('button', { name: /log in/i })).not.toHaveLength(0);
+    // The landing page is what actually rendered. Its entry point is named
+    // "Sign In" so that it matches the screen it opens.
+    expect(await screen.findAllByRole('button', { name: /sign in/i })).not.toHaveLength(0);
   });
 
   it('redirects /applications to the landing page', async () => {

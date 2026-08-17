@@ -110,9 +110,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
           style={{
             padding: '0.75rem 1rem',
             borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--rose-50)',
+            backgroundColor: 'var(--meta-danger-bg)',
             border: '1px solid var(--rose-200)',
-            color: 'var(--rose-700)',
+            color: 'var(--meta-danger-text)',
             fontSize: '0.84375rem',
             marginBottom: '1rem'
           }}

@@ -40,7 +40,7 @@ const fillSignup = async (user: ReturnType<typeof userEvent.setup>) => {
 };
 
 const submitSignup = async (user: ReturnType<typeof userEvent.setup>) =>
-  user.click(screen.getByRole('button', { name: /create account & start/i }));
+  user.click(screen.getByRole('button', { name: /create account/i }));
 
 beforeEach(() => {
   mocks.signUp.mockReset();
@@ -138,7 +138,7 @@ describe('B. sign-up requiring email confirmation', () => {
     expect(cta).toBeEnabled();
 
     await user.click(cta);
-    expect(await screen.findByRole('heading', { name: /log in to jobtrack/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });
@@ -165,7 +165,7 @@ describe('C. genuine sign-up failure', () => {
     await submitSignup(user);
 
     await screen.findByText(/network request failed/i);
-    expect(screen.getByRole('button', { name: /create account & start/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /create account/i })).toBeEnabled();
   });
 
   it('does not call the API with an empty form', async () => {
@@ -182,12 +182,129 @@ describe('C. genuine sign-up failure', () => {
     // Submitting the form directly bypasses native constraint validation, which
     // is what lets the component's own check run.
     const form = screen
-      .getByRole('button', { name: /create account & start/i })
+      .getByRole('button', { name: /create account/i })
       .closest('form') as HTMLFormElement;
     fireEvent.submit(form);
 
     expect(await screen.findByText(/complete all required fields/i)).toBeInTheDocument();
     expect(mocks.signUp).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Sign in and sign up are two separate experiences that happen to share one
+ * component. Whichever one the user asked for is the only one they may see:
+ * no registration fields on the sign-in screen, and no mixed-purpose wording.
+ *
+ * The primary action is located by `type="submit"` rather than by name, because
+ * each screen also carries a *link* to the other one whose label collides with
+ * the other screen's submit label.
+ */
+const primaryAction = () =>
+  document.querySelector('form button[type="submit"]') as HTMLButtonElement;
+
+describe('D. separate sign-in and sign-up experiences', () => {
+  it('shows only the sign-in experience when opened as sign in', () => {
+    setup('login');
+
+    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^password/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
+
+    expect(primaryAction()).toHaveTextContent(/sign in/i);
+    expect(primaryAction()).not.toHaveTextContent(/create account/i);
+    expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
+    expect(screen.getByText(/don't have an account/i)).toBeInTheDocument();
+  });
+
+  it('keeps "Forgot Password?" on the sign-in screen only', async () => {
+    const onOpenForgotPassword = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <AuthModal
+        isOpen
+        onClose={vi.fn()}
+        initialMode="login"
+        onOpenForgotPassword={onOpenForgotPassword}
+      />
+    );
+
+    const forgot = screen.getByRole('button', { name: /forgot password/i });
+    await user.click(forgot);
+    expect(onOpenForgotPassword).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows only the registration experience when opened as sign up', () => {
+    setup('signup');
+
+    expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^password/i)).toBeInTheDocument();
+
+    expect(primaryAction()).toHaveTextContent(/create account/i);
+    expect(screen.queryByRole('button', { name: /forgot password/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /start tracking your career/i })).toBeInTheDocument();
+    expect(screen.getByText(/already have an account/i)).toBeInTheDocument();
+  });
+
+  it('switches sign in -> sign up and moves focus to the first new field', async () => {
+    const { user } = setup('login');
+
+    await user.click(screen.getByRole('button', { name: /^sign up$/i }));
+
+    const fullName = await screen.findByLabelText(/full name/i);
+    expect(fullName).toBeInTheDocument();
+    expect(primaryAction()).toHaveTextContent(/create account/i);
+    expect(screen.queryByRole('button', { name: /forgot password/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(fullName).toHaveFocus());
+  });
+
+  it('switches sign up -> sign in and moves focus to the email field', async () => {
+    const { user } = setup('signup');
+
+    await user.click(screen.getByRole('button', { name: /^sign in$/i }));
+
+    await waitFor(() => expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument());
+    expect(primaryAction()).toHaveTextContent(/sign in/i);
+    await waitFor(() => expect(screen.getByLabelText(/email address/i)).toHaveFocus());
+  });
+
+  it('does not carry the typed password across a switch', async () => {
+    const { user } = setup('signup');
+
+    await user.type(screen.getByLabelText(/^password/i), 'CorrectHorse1');
+    await user.click(screen.getByRole('button', { name: /^sign in$/i }));
+
+    await waitFor(() => expect(screen.getByLabelText(/^password/i)).toHaveValue(''));
+    expect(screen.getByLabelText(/email address/i)).toHaveValue('');
+  });
+
+  it('reopens on the experience the caller asked for, not the last one shown', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <AuthModal isOpen onClose={vi.fn()} initialMode="login" />
+    );
+
+    // The user wanders into sign up, then closes the modal.
+    await user.click(screen.getByRole('button', { name: /^sign up$/i }));
+    expect(await screen.findByLabelText(/full name/i)).toBeInTheDocument();
+    rerender(<AuthModal isOpen={false} onClose={vi.fn()} initialMode="login" />);
+
+    // Choosing "Sign in" again must not reopen on the registration screen.
+    rerender(<AuthModal isOpen onClose={vi.fn()} initialMode="login" />);
+    expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
+    expect(primaryAction()).toHaveTextContent(/sign in/i);
+  });
+
+  it('clears a stale error when moving to the other experience', async () => {
+    const { user } = setup('signup');
+
+    const form = primaryAction().closest('form') as HTMLFormElement;
+    fireEvent.submit(form);
+    expect(await screen.findByText(/complete all required fields/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^sign in$/i }));
+    expect(screen.queryByText(/complete all required fields/i)).not.toBeInTheDocument();
   });
 });
 

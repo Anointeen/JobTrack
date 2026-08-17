@@ -72,10 +72,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenSignup, onOpenLo
             {resolvedTheme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
           </button>
           <button onClick={onOpenLogin} className="btn btn-ghost">
-            Log In
+            Sign In
           </button>
           <button onClick={onOpenSignup} className="btn btn-primary" style={{ boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)' }}>
-            {/* The full label cannot fit beside the brand and Log In on a
+            {/* The full label cannot fit beside the brand and Sign In on a
                 375px screen; the short form keeps the row within the viewport. */}
             <span className="landing-cta-full">Start Tracking Jobs</span>
             <span className="landing-cta-short">Sign Up</span>
@@ -156,7 +156,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenSignup, onOpenLo
               className="btn btn-secondary btn-lg"
               style={{ padding: '1rem 2rem' }}
             >
-              Log In
+              Sign In
             </button>
           </div>
 

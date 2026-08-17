@@ -8,9 +8,13 @@ import {
   ApplicationStatus,
   APPLICATION_PRIORITIES,
   APPLICATION_SOURCES,
-  JobType
+  JobType,
+  SalaryPeriod,
+  SALARY_CURRENCIES,
+  SALARY_PERIODS
 } from '../../types';
 import { normaliseTag, hasTag, todayLocalDate } from '../../lib/applicationFilters';
+import { formatSalary, hasLegacySalary, validateSalaryDraft } from '../../lib/salary';
 import { TagList } from './ApplicationMetadata';
 import {
   Building2, Briefcase, MapPin, Calendar, Link as LinkIcon, User, Mail,
@@ -37,8 +41,10 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
   const [location, setLocation] = useState('');
   const [jobType, setJobType] = useState<JobType>('Full-time');
   const [jobPostingUrl, setJobPostingUrl] = useState('');
-  const [salaryMin, setSalaryMin] = useState<string>('');
-  const [salaryMax, setSalaryMax] = useState<string>('');
+  // --- Salary (migration 0003): amount, currency and period, not a bare range ---
+  const [salaryAmount, setSalaryAmount] = useState<string>('');
+  const [salaryCurrency, setSalaryCurrency] = useState<string>(SALARY_CURRENCIES[0].code);
+  const [salaryPeriod, setSalaryPeriod] = useState<SalaryPeriod>('year');
   const [deadline, setDeadline] = useState('');
   const [recruiterName, setRecruiterName] = useState('');
   const [recruiterEmail, setRecruiterEmail] = useState('');
@@ -65,8 +71,14 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       setLocation(initialData.location || '');
       setJobType(initialData.job_type || 'Full-time');
       setJobPostingUrl(initialData.job_posting_url || '');
-      setSalaryMin(initialData.salary_min ? String(initialData.salary_min) : '');
-      setSalaryMax(initialData.salary_max ? String(initialData.salary_max) : '');
+      // A pre-0003 row has no amount of its own. Its lower bound is the closest
+      // honest starting point, and the currency/period pickers fall back to
+      // their defaults rather than claiming the old row specified either.
+      const legacyFigure = initialData.salary_min ?? initialData.salary_max ?? null;
+      const amount = initialData.salary_amount ?? legacyFigure;
+      setSalaryAmount(amount === null || amount === undefined ? '' : String(amount));
+      setSalaryCurrency(initialData.salary_currency || SALARY_CURRENCIES[0].code);
+      setSalaryPeriod(initialData.salary_period || 'year');
       setDeadline(initialData.deadline || '');
       setRecruiterName(initialData.recruiter_name || '');
       setRecruiterEmail(initialData.recruiter_email || '');
@@ -85,8 +97,9 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       setLocation('');
       setJobType('Full-time');
       setJobPostingUrl('');
-      setSalaryMin('');
-      setSalaryMax('');
+      setSalaryAmount('');
+      setSalaryCurrency(SALARY_CURRENCIES[0].code);
+      setSalaryPeriod('year');
       setDeadline('');
       setRecruiterName('');
       setRecruiterEmail('');
@@ -181,28 +194,19 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       }
     }
 
-    // The checks below mirror the database CHECK constraints added in migration
-    // 0001 (applications_salary_range_check and
-    // applications_deadline_after_application_date_check). Catching them here
-    // gives a readable message instead of a raw Postgres 23514 error; the
-    // constraints remain the authoritative integrity layer.
-    const min = salaryMin.trim() ? parseFloat(salaryMin) : null;
-    const max = salaryMax.trim() ? parseFloat(salaryMax) : null;
+    // Salary is optional; the rules only apply once an amount is entered. They
+    // mirror the CHECK constraints added in migration 0003 so the user reads a
+    // sentence instead of a raw Postgres 23514 — the constraints remain the
+    // authoritative integrity layer.
+    const salary = validateSalaryDraft({
+      amount: salaryAmount,
+      currency: salaryCurrency,
+      period: salaryPeriod
+    });
+    if (salary.error) errs.salaryAmount = salary.error;
 
-    if (min !== null && (Number.isNaN(min) || min < 0)) {
-      errs.salaryMin = 'Minimum salary must be a number of 0 or more.';
-    }
-    if (max !== null && (Number.isNaN(max) || max < 0)) {
-      errs.salaryMax = 'Maximum salary must be a number of 0 or more.';
-    }
-    if (
-      min !== null && max !== null &&
-      !Number.isNaN(min) && !Number.isNaN(max) &&
-      min >= 0 && max >= 0 && max < min
-    ) {
-      errs.salaryMax = 'Maximum salary cannot be lower than minimum salary.';
-    }
-
+    // The checks below mirror
+    // applications_deadline_after_application_date_check from migration 0001.
     // Both are ISO YYYY-MM-DD strings, so a string comparison is a correct
     // date comparison and avoids timezone drift from Date parsing.
     if (deadline && applicationDate && deadline < applicationDate) {
@@ -243,6 +247,14 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
 
     if (!validate()) return;
 
+    // validate() has already confirmed this resolves; recomputing here keeps the
+    // parsed value next to its use instead of threading it out of validate().
+    const salary = validateSalaryDraft({
+      amount: salaryAmount,
+      currency: salaryCurrency,
+      period: salaryPeriod
+    }).value!;
+
     try {
       setSubmitting(true);
       await onSave({
@@ -253,8 +265,18 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
         location: location.trim() || undefined,
         job_type: jobType,
         job_posting_url: jobPostingUrl.trim() || undefined,
-        salary_min: salaryMin ? parseFloat(salaryMin) : undefined,
-        salary_max: salaryMax ? parseFloat(salaryMax) : undefined,
+        // Salary in the shape introduced by migration 0003. `null` (not
+        // undefined) is what clears a value on update, since undefined keys are
+        // dropped before reaching PostgREST — so clearing the amount really does
+        // clear all three columns.
+        salary_amount: salary.salary_amount,
+        salary_currency: salary.salary_currency,
+        salary_period: salary.salary_period,
+        // Retire the unlabelled pre-0003 pair for this row. The form cannot
+        // express a range, so leaving a stale range behind would keep rendering
+        // a salary the user can no longer see or edit here.
+        salary_min: null,
+        salary_max: null,
         deadline: deadline || undefined,
         recruiter_name: recruiterName.trim() || undefined,
         recruiter_email: recruiterEmail.trim() || undefined,
@@ -295,9 +317,9 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           style={{ 
             padding: '0.75rem 1rem', 
             borderRadius: 'var(--radius-md)', 
-            backgroundColor: 'var(--rose-50)', 
+            backgroundColor: 'var(--meta-danger-bg)', 
             border: '1px solid var(--rose-200)',
-            color: 'var(--rose-700)',
+            color: 'var(--meta-danger-text)',
             fontSize: '0.84375rem',
             marginBottom: '1rem'
           }}
@@ -441,34 +463,76 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           {errors.jobPostingUrl && <span className="form-error">{errors.jobPostingUrl}</span>}
         </div>
 
-        <div className="form-row form-row-3">
-          <div className="form-group">
-            <label className="form-label" htmlFor="application-salary-min-yr">Salary Min ($/yr)</label>
-            <input
-              id="application-salary-min-yr"
-              type="number"
-              min="0"
-              className={`input-control ${errors.salaryMin ? 'input-error' : ''}`}
-              placeholder="e.g. 140000"
-              value={salaryMin}
-              onChange={e => setSalaryMin(e.target.value)}
-            />
-            {errors.salaryMin && <span className="form-error">{errors.salaryMin}</span>}
-          </div>
+        <div className="form-row form-row-2">
+          {/* Salary: currency, amount and payment period. Currency is chosen
+              independently of the amount — nothing here assumes US Dollars. */}
+          <fieldset className="form-group salary-fieldset">
+            <legend className="form-label">
+              Salary <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(Optional)</span>
+            </legend>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="application-salary-max-yr">Salary Max ($/yr)</label>
-            <input
-              id="application-salary-max-yr"
-              type="number"
-              min="0"
-              className={`input-control ${errors.salaryMax ? 'input-error' : ''}`}
-              placeholder="e.g. 180000"
-              value={salaryMax}
-              onChange={e => setSalaryMax(e.target.value)}
-            />
-            {errors.salaryMax && <span className="form-error">{errors.salaryMax}</span>}
-          </div>
+            <div className="salary-inputs">
+              <div>
+                <label className="sr-only" htmlFor="application-salary-currency">Currency</label>
+                <select
+                  id="application-salary-currency"
+                  className="input-control"
+                  value={salaryCurrency}
+                  onChange={e => setSalaryCurrency(e.target.value)}
+                >
+                  {SALARY_CURRENCIES.map(c => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="sr-only" htmlFor="application-salary-amount">Salary amount</label>
+                <input
+                  id="application-salary-amount"
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
+                  className={`input-control ${errors.salaryAmount ? 'input-error' : ''}`}
+                  placeholder="e.g. 80000"
+                  value={salaryAmount}
+                  onChange={e => setSalaryAmount(e.target.value)}
+                  aria-describedby={errors.salaryAmount ? 'application-salary-error' : undefined}
+                />
+              </div>
+            </div>
+
+            <fieldset className="salary-period-fieldset">
+              <legend className="salary-period-legend">Payment period</legend>
+              {SALARY_PERIODS.map(p => (
+                <label key={p.value} className="salary-period-option">
+                  <input
+                    type="radio"
+                    name="application-salary-period"
+                    value={p.value}
+                    checked={salaryPeriod === p.value}
+                    onChange={() => setSalaryPeriod(p.value as SalaryPeriod)}
+                  />
+                  <span>{p.label}</span>
+                </label>
+              ))}
+            </fieldset>
+
+            {errors.salaryAmount && (
+              <span className="form-error" id="application-salary-error">{errors.salaryAmount}</span>
+            )}
+
+            {/* A row saved before migration 0003 may hold a salary *range*, which
+                this form cannot express. Say so rather than dropping the upper
+                bound silently when the user saves. */}
+            {hasLegacySalary(initialData) && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
+                Previously recorded as {formatSalary(initialData)} with no currency.
+                Saving stores a single amount in the currency you choose.
+              </span>
+            )}
+          </fieldset>
 
           <div className="form-group">
             <label className="form-label" htmlFor="application-application-deadline">Application Deadline</label>

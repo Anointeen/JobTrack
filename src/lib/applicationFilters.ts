@@ -28,6 +28,15 @@ export const SUBMITTED_STATUSES: ApplicationStatus[] = [
   'Applied', 'Assessment', 'Interview', 'Offer', 'Rejected', 'Withdrawn'
 ];
 
+/**
+ * Sort orders offered by the applications list.
+ *
+ * Salary is deliberately absent, and remains absent after migration 0003 added
+ * per-application currencies. Ordering NGN 500,000 against USD 80,000 needs an
+ * exchange rate that JobTrack does not hold; comparing the bare numbers would
+ * produce a confident, wrong ordering. See SALARY_COMPARISON_LIMITATION in
+ * src/lib/salary.ts.
+ */
 export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'newest', label: 'Newest applied' },
   { value: 'oldest', label: 'Oldest applied' },

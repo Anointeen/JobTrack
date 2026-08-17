@@ -46,6 +46,42 @@ export const APPLICATION_SOURCES: readonly ApplicationSource[] = [
   'Referral', 'Recruiter', 'University', 'Other'
 ] as const;
 
+/**
+ * How often a salary is paid. Mirrors applications_salary_period_check in
+ * migration 0003.
+ */
+export type SalaryPeriod = 'year' | 'month';
+
+export const SALARY_PERIODS: readonly { value: SalaryPeriod; label: string }[] = [
+  { value: 'year', label: 'Per year' },
+  { value: 'month', label: 'Per month' }
+] as const;
+
+/**
+ * ISO 4217's code for "no currency specified". It backs the picker's *Other*
+ * option, so a user whose currency is not listed can still record an amount
+ * honestly instead of misfiling it under a currency they do not mean.
+ */
+export const OTHER_CURRENCY_CODE = 'XXX';
+
+/**
+ * Currencies offered by the salary picker.
+ *
+ * The database checks the *shape* of the code (three uppercase letters), not
+ * membership of this list, so extending it needs no migration. There is
+ * deliberately no default beyond the first entry: assuming USD is precisely the
+ * behaviour migration 0003 exists to remove.
+ */
+export const SALARY_CURRENCIES: readonly { code: string; label: string }[] = [
+  { code: 'USD', label: 'USD — US Dollar' },
+  { code: 'NGN', label: 'NGN — Nigerian Naira' },
+  { code: 'GBP', label: 'GBP — British Pound' },
+  { code: 'EUR', label: 'EUR — Euro' },
+  { code: 'CAD', label: 'CAD — Canadian Dollar' },
+  { code: 'AUD', label: 'AUD — Australian Dollar' },
+  { code: OTHER_CURRENCY_CODE, label: 'Other / not listed' }
+] as const;
+
 export interface Application {
   id: string;
   user_id: string;
@@ -54,8 +90,14 @@ export interface Application {
   location?: string;
   job_type: JobType;
   job_posting_url?: string;
-  salary_min?: number;
-  salary_max?: number;
+  /**
+   * @deprecated Superseded by salary_amount/currency/period in migration 0003.
+   * Retained so applications saved before that change still display their
+   * salary. The form never writes these; it clears them when the user saves.
+   */
+  salary_min?: number | null;
+  /** @deprecated See salary_min. */
+  salary_max?: number | null;
   status: ApplicationStatus;
   application_date: string; // ISO Date YYYY-MM-DD
   deadline?: string; // ISO Date YYYY-MM-DD
@@ -72,6 +114,17 @@ export interface Application {
   /** ISO Date YYYY-MM-DD. Must not predate application_date. */
   follow_up_date?: string | null;
   follow_up_note?: string | null;
+
+  // --- Salary added in migration 0003 ---
+  /**
+   * The salary figure, expressed in `salary_currency` and paid every
+   * `salary_period`. Optional: plenty of applications never list a salary.
+   * When it is set, both of the other two are set — the database enforces it.
+   */
+  salary_amount?: number | null;
+  /** ISO 4217 code, or 'XXX' for a currency outside the offered list. */
+  salary_currency?: string | null;
+  salary_period?: SalaryPeriod | null;
 
   created_at: string;
   updated_at: string;

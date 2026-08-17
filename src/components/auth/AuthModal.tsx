@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Modal } from '../common/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { Briefcase, Lock, Mail, User as UserIcon, ArrowRight, AlertCircle, MailCheck } from 'lucide-react';
@@ -66,11 +66,48 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  /**
+   * Sign in and sign up are distinct experiences reached from one component, so
+   * switching must behave like arriving at a new screen: the stale error from
+   * the previous screen is cleared, the password is discarded rather than
+   * carried across, and focus moves to that screen's first field. Without the
+   * focus move, a keyboard user activates "Sign up" and their focus stays on a
+   * link that no longer exists.
+   */
   const switchMode = (newMode: 'login' | 'signup') => {
+    if (newMode !== mode) setPassword('');
     setMode(newMode);
     setErrorMsg('');
     setConfirmationSentTo(null);
+    setPendingFocus(true);
   };
+
+  const [pendingFocus, setPendingFocus] = useState(false);
+  const fullNameRef = useRef<HTMLInputElement | null>(null);
+  const emailRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!pendingFocus) return;
+    // Each screen leads with a different field: sign up starts at Full Name,
+    // sign in at Email. Two refs rather than one conditional ref, so a single
+    // commit cannot attach and detach the same ref in an unhelpful order.
+    const target = mode === 'signup' ? fullNameRef.current : emailRef.current;
+    target?.focus();
+    setPendingFocus(false);
+  }, [pendingFocus, mode]);
+
+  /**
+   * The modal stays mounted while closed, so `initialMode` — which only seeds
+   * useState once — would be ignored on every reopen: choosing "Sign in" and
+   * later "Get started" would reopen on whichever screen was last shown. Each
+   * opening is a fresh arrival at the screen the caller asked for.
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+    setMode(initialMode);
+    setErrorMsg('');
+    setConfirmationSentTo(null);
+  }, [isOpen, initialMode]);
 
   const handleClose = () => {
     setConfirmationSentTo(null);
@@ -134,7 +171,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={mode === 'signup' ? 'Create Your Account' : 'Welcome Back'}
+      title={mode === 'signup' ? 'Create your account' : 'Sign in'}
       maxWidth="460px"
     >
       <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
@@ -153,7 +190,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <Briefcase size={24} color="var(--primary-text)" />
         </div>
         <h3 style={{ fontSize: '1.25rem' }}>
-          {mode === 'signup' ? 'Start Tracking Your Career' : 'Log In to JobTrack'}
+          {mode === 'signup' ? 'Start tracking your career' : 'Welcome back'}
         </h3>
         <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '4px' }}>
           {mode === 'signup' 
@@ -167,9 +204,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           style={{ 
             padding: '0.75rem 1rem', 
             borderRadius: 'var(--radius-md)', 
-            backgroundColor: 'var(--rose-50)', 
+            backgroundColor: 'var(--meta-danger-bg)', 
             border: '1px solid var(--rose-200)',
-            color: 'var(--rose-700)',
+            color: 'var(--meta-danger-text)',
             fontSize: '0.84375rem',
             display: 'flex',
             alignItems: 'flex-start',
@@ -194,7 +231,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)' }} 
               />
               <input
-              id="auth-full-name"
+                id="auth-full-name"
+                ref={fullNameRef}
                 type="text"
                 className="input-control"
                 placeholder="e.g. Alex Morgan"
@@ -218,6 +256,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             />
             <input
               id="auth-email-address"
+              ref={emailRef}
               type="email"
               className="input-control"
               placeholder="alex@example.com"
@@ -276,7 +315,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             'Processing...'
           ) : (
             <>
-              {mode === 'signup' ? 'Create Account & Start' : 'Log In to Dashboard'}
+              {mode === 'signup' ? 'Create account' : 'Sign in'}
               <ArrowRight size={18} />
             </>
           )}
@@ -301,7 +340,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               onClick={() => switchMode('login')}
               style={{ background: 'none', border: 'none', color: 'var(--primary-text)', fontWeight: 600, cursor: 'pointer' }}
             >
-              Log In
+              Sign in
             </button>
           </p>
         ) : (
@@ -312,7 +351,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               onClick={() => switchMode('signup')}
               style={{ background: 'none', border: 'none', color: 'var(--primary-text)', fontWeight: 600, cursor: 'pointer' }}
             >
-              Sign Up
+              Sign up
             </button>
           </p>
         )}
