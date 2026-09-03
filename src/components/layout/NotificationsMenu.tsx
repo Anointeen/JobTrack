@@ -25,8 +25,8 @@ import { NotificationPreferences } from '../../types';
  * unconditionally, which meant the one thing it did communicate was wrong.
  *
  * It is now a disclosure button (WAI-ARIA disclosure pattern) whose panel lists
- * reminders derived from the user's own applications. See src/lib/notifications
- * for why no new table was needed.
+ * reminders derived from the user's own applications and calendar events. See
+ * src/lib/notifications for why no new table was needed.
  */
 
 const DEFAULT_PREFS: Pick<
@@ -182,10 +182,16 @@ export const NotificationsMenu: React.FC = () => {
           {count === 0 ? (
             <div className="notifications-empty">
               <p className="notifications-empty-title">You're all caught up</p>
+              {/* Two mechanisms, so the copy names both. Application deadlines
+                  and follow-ups use the ±NOTIFICATION_WINDOW_DAYS window;
+                  calendar events use each event's own
+                  reminder_minutes_before, which is usually far narrower. The
+                  previous wording described only the first and predated the
+                  calendar. */}
               <p className="notifications-empty-body">
                 {allRemindersDisabled(prefs)
-                  ? 'All reminders are switched off. Turn them back on in Settings to see deadlines and follow-ups here.'
-                  : 'Deadlines and follow-ups appear here in the week before and after they are due.'}
+                  ? 'All reminders are switched off. Turn them back on in Settings to see application deadlines, follow-ups and calendar events here.'
+                  : 'Application deadlines and follow-ups appear here in the week either side of their date. Calendar events appear at the reminder time set on each one, and stay until the event begins.'}
               </p>
             </div>
           ) : (

@@ -155,6 +155,23 @@ describe('panel contents', () => {
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 
+  it('describes both reminder mechanisms, not just the application one', async () => {
+    // The panel is fed by two different rules — the +/-7-day window for
+    // application dates, and each calendar event's own
+    // reminder_minutes_before. The copy previously named only the first,
+    // which read as though events also fired a week out.
+    const { user } = setup([makeApplication({ deadline: undefined, follow_up_date: null })]);
+    await user.click(toggle());
+
+    const body = screen.getByText(/appear here/i);
+    expect(body).toHaveTextContent(/deadlines and follow-ups/i);
+    expect(body).toHaveTextContent(/week/i);
+    expect(body).toHaveTextContent(/calendar events/i);
+    expect(body).toHaveTextContent(/reminder time/i);
+    // The old wording lumped events in with the weekly window.
+    expect(body).not.toHaveTextContent(/before and after they are due/i);
+  });
+
   it('explains the empty state differently when every reminder is switched off', async () => {
     mocks.getNotificationPreferences.mockResolvedValue({
       id: 'n1', user_id: 'user-1',
