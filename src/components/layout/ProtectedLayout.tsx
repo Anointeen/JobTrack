@@ -43,14 +43,18 @@ export const ProtectedLayout: React.FC = () => {
     <ToastProvider>
       <ApplicationsProvider>
         <CalendarProvider>
-          <ApplicationFormProvider>
-            {/* Below the applications and calendar providers: the event form
-                reads both — applications to offer as links, the calendar to
-                write into. */}
-            <CalendarEventFormProvider>
+          {/* The event form sits above the application form, not below it.
+              It needs only the applications and calendar providers, while the
+              application form needs *it* — saving an edit that moves an
+              application into an interview stage offers to schedule that
+              stage. With the nesting the other way round that call is
+              impossible, which is why the edit form silently skipped the
+              prompt. */}
+          <CalendarEventFormProvider>
+            <ApplicationFormProvider>
               <AppLayout />
-            </CalendarEventFormProvider>
-          </ApplicationFormProvider>
+            </ApplicationFormProvider>
+          </CalendarEventFormProvider>
         </CalendarProvider>
       </ApplicationsProvider>
     </ToastProvider>

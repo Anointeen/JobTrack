@@ -19,12 +19,12 @@ import {
   Flag,
   Compass,
   CalendarClock,
-  Tag as TagIcon,
-  CalendarPlus
+  Tag as TagIcon
 } from 'lucide-react';
 import { PriorityChip, FollowUpChip, TagList } from './ApplicationMetadata';
 import { formatSalary } from '../../lib/salary';
-import { INTERVIEW_STAGE_EVENT_TYPE, isInterviewStage } from '../../lib/calendar';
+import { isInterviewStage } from '../../lib/calendar';
+import { AddToCalendarPrompt } from '../calendar/AddToCalendarPrompt';
 import { useCalendarEventForm } from '../../context/CalendarEventFormContext';
 
 interface ApplicationDetailModalProps {
@@ -283,53 +283,21 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
         </div>
       )}
 
-      {/* Offer to schedule the stage the user just moved into. A prompt, not a
-          forced step: it is dismissible and never blocks the status change,
-          which has already been saved by the time this appears. */}
+      {/* Offer to schedule the stage just moved into. Shared with the edit
+          form so both routes behave identically. */}
       {calendarPrompt && (
-        <div className="calendar-prompt" role="status">
-          <span className="calendar-prompt-icon" aria-hidden="true">
-            <CalendarPlus size={18} />
-          </span>
-
-          <div className="calendar-prompt-body">
-            <p className="calendar-prompt-title">
-              Moved to {calendarPrompt}. Put it on your calendar?
-            </p>
-            <p className="calendar-prompt-sub">
-              We'll link the event to {application.job_title} at {application.company_name}.
-            </p>
-          </div>
-
-          <div className="calendar-prompt-actions">
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                const eventType =
-                  INTERVIEW_STAGE_EVENT_TYPE[calendarPrompt] ?? 'technical_interview';
-                openCreateEvent({
-                  title: `${calendarPrompt} — ${application.company_name}`,
-                  event_type: eventType,
-                  application_id: application.id
-                });
-                setCalendarPrompt(null);
-                // The event form is its own modal; leaving this one open would
-                // stack two dialogs and trap focus between them.
-                onClose();
-              }}
-            >
-              <CalendarPlus size={16} /> Add to Calendar
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => setCalendarPrompt(null)}
-            >
-              Not now
-            </button>
-          </div>
-        </div>
+        <AddToCalendarPrompt
+          stage={calendarPrompt}
+          application={application}
+          onAdd={prefill => {
+            openCreateEvent(prefill);
+            setCalendarPrompt(null);
+            // The event form is its own modal; leaving this one open would
+            // stack two dialogs and trap focus between them.
+            onClose();
+          }}
+          onDismiss={() => setCalendarPrompt(null)}
+        />
       )}
 
       {/* Main Details Grid */}
