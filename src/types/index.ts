@@ -228,3 +228,87 @@ export interface ToastMessage {
   title: string;
   message: string;
 }
+
+// ---------------------------------------------------------------------------
+// Calendar (migration 0004)
+// ---------------------------------------------------------------------------
+
+/** Mirrors calendar_events_event_type_check in migration 0004. */
+export type CalendarEventType =
+  | 'phone_screen'
+  | 'technical_interview'
+  | 'onsite'
+  | 'application_deadline'
+  | 'follow_up'
+  | 'offer_deadline'
+  | 'other';
+
+/**
+ * The event types, in the order the picker offers them: interview stages first
+ * in the order they usually happen, then the dated obligations, then the
+ * catch-all.
+ */
+export const CALENDAR_EVENT_TYPES: readonly {
+  value: CalendarEventType;
+  label: string;
+}[] = [
+  { value: 'phone_screen', label: 'Phone screen' },
+  { value: 'technical_interview', label: 'Technical interview' },
+  { value: 'onsite', label: 'Onsite' },
+  { value: 'application_deadline', label: 'Application deadline' },
+  { value: 'follow_up', label: 'Follow-up' },
+  { value: 'offer_deadline', label: 'Offer deadline' },
+  { value: 'other', label: 'Other' }
+] as const;
+
+/** Reminder lead times offered by the form. */
+export const REMINDER_OPTIONS: readonly { value: number; label: string }[] = [
+  { value: 15, label: '15 minutes before' },
+  { value: 60, label: '1 hour before' },
+  { value: 180, label: '3 hours before' },
+  { value: 1440, label: '1 day before' },
+  { value: 2880, label: '2 days before' },
+  { value: 10080, label: '1 week before' }
+] as const;
+
+/** The database default, so the form and the column agree. */
+export const DEFAULT_REMINDER_MINUTES = 60;
+
+export interface CalendarEvent {
+  id: string;
+  user_id: string;
+  /** The application this event concerns. NULL for a standalone event. */
+  application_id?: string | null;
+  title: string;
+  /** NOT NULL DEFAULT 'other' in the database, so always present on a read. */
+  event_type: CalendarEventType;
+  /** Full ISO 8601 timestamp with offset — an event has a time, not just a day. */
+  event_date: string;
+  notes?: string | null;
+  /**
+   * Minutes before `event_date` to remind. `null` means no reminder for this
+   * event, which is deliberately distinct from `0` ("remind at the start").
+   */
+  reminder_minutes_before?: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Payload accepted when creating an event.
+ *
+ * `event_type` and `reminder_minutes_before` are optional even though the
+ * column is NOT NULL / defaulted: omitting them lets the database defaults
+ * ('other' and 60) apply, which is what should happen for a caller that does
+ * not set them.
+ */
+export type CalendarEventInput =
+  Omit<CalendarEvent, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'event_type'> & {
+    event_type?: CalendarEventType;
+  };
+
+/** Payload accepted when updating an event. Every field is optional. */
+export type CalendarEventUpdate = Partial<Omit<CalendarEvent, 'id' | 'user_id' | 'created_at'>>;
+
+/** The two ways the calendar screen can present the same events. */
+export type CalendarViewMode = 'month' | 'agenda';

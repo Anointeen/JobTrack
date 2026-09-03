@@ -9,6 +9,7 @@ import { SuccessRateCard } from './SuccessRateCard';
 import { StatusPipeline } from './StatusPipeline';
 import { RecentApplications } from './RecentApplications';
 import { UpcomingDeadlines } from './UpcomingDeadlines';
+import { UpcomingThisWeek } from './UpcomingThisWeek';
 import { InsightsPanel } from './InsightsPanel';
 import { Briefcase, Activity, CalendarCheck, Award, XCircle } from 'lucide-react';
 import { Skeleton } from '../common/Skeleton';
@@ -146,8 +147,13 @@ export const DashboardView: React.FC = () => {
         />
       </div>
 
-      {/* Upcoming deadlines, only for opportunities still in play. */}
-      <UpcomingDeadlines applications={metrics.upcomingDeadlines} />
+      {/* Scheduled commitments and application deadlines sit side by side:
+          one comes from the calendar, the other from the applications
+          themselves, and they answer the same question from two directions. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+        <UpcomingThisWeek />
+        <UpcomingDeadlines applications={metrics.upcomingDeadlines} />
+      </div>
 
       <RecentApplications
         applications={applications}

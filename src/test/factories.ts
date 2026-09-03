@@ -1,6 +1,7 @@
 import {
   Application,
   ApplicationStatusHistory,
+  CalendarEvent,
   NotificationPreferences,
   UserProfile,
   UserSession
@@ -91,3 +92,34 @@ export const makeNotificationPreferences = (
   follow_up_reminders: true,
   ...over
 });
+
+/**
+ * A calendar event. `event_date` defaults to a fixed offset from *now* rather
+ * than a hard-coded date, because almost every calendar assertion is relative
+ * to the present ("upcoming", "this week", "reminder due").
+ */
+export const makeCalendarEvent = (over: Partial<CalendarEvent> = {}): CalendarEvent => ({
+  id: over.id ?? `evt-${++seq}`,
+  user_id: 'user-1',
+  application_id: null,
+  title: 'Technical interview',
+  event_type: 'technical_interview',
+  event_date: hoursFromNow(24),
+  notes: null,
+  reminder_minutes_before: 60,
+  created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-01-01T00:00:00.000Z',
+  ...over
+});
+
+/** An ISO timestamp `hours` from now — negative for the past. */
+export const hoursFromNow = (hours: number): string =>
+  new Date(Date.now() + hours * 3_600_000).toISOString();
+
+/** An ISO timestamp at `hour` local time, `dayOffset` days from today. */
+export const localDateTime = (dayOffset: number, hour = 9, minute = 0): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
+};

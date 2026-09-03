@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildNotifications, allRemindersDisabled, NOTIFICATION_WINDOW_DAYS } from './notifications';
-import { makeApplication, localDate } from '../test/factories';
+import { makeApplication, makeCalendarEvent, localDate } from '../test/factories';
 
 /**
  * Notifications are derived from applications the user already has, gated by
@@ -133,5 +133,104 @@ describe('allRemindersDisabled', () => {
     expect(allRemindersDisabled(ALL_OFF)).toBe(true);
     expect(allRemindersDisabled(ALL_ON)).toBe(false);
     expect(allRemindersDisabled({ ...ALL_OFF, deadline_reminders: true })).toBe(false);
+  });
+});
+
+/**
+ * Calendar-event reminders reuse the same derived-notification pipeline as
+ * application deadlines: nothing is stored, nothing is polled, and the three
+ * existing preference switches still decide what appears.
+ */
+describe('calendar event reminders', () => {
+  const now = Date.now();
+  /** An event `minutes` from now, with a reminder `lead` minutes before it. */
+  const evt = (minutes: number, lead: number | null, over = {}) =>
+    makeCalendarEvent({
+      event_date: new Date(now + minutes * 60_000).toISOString(),
+      reminder_minutes_before: lead,
+      ...over
+    });
+
+  it('says nothing until the lead time has elapsed', () => {
+    // Event in 3 hours, reminder set for 1 hour before: not yet.
+    expect(buildNotifications([], ALL_ON, [evt(180, 60)], now)).toEqual([]);
+  });
+
+  it('fires once the lead time is reached', () => {
+    const items = buildNotifications([], ALL_ON, [evt(45, 60)], now);
+    expect(items).toHaveLength(1);
+    expect(items[0].kind).toBe('calendar_event');
+  });
+
+  it('stops once the event has started, rather than lingering', () => {
+    expect(buildNotifications([], ALL_ON, [evt(-5, 60)], now)).toEqual([]);
+  });
+
+  it('never fires for an event with the reminder switched off', () => {
+    // null is "no reminder"; the event is otherwise due right now.
+    expect(buildNotifications([], ALL_ON, [evt(5, null)], now)).toEqual([]);
+  });
+
+  it('treats a zero lead time as a real setting, not as "off"', () => {
+    // Remind at the start: due only in the final moments before it begins.
+    expect(buildNotifications([], ALL_ON, [evt(30, 0)], now)).toEqual([]);
+    expect(buildNotifications([], ALL_ON, [evt(0, 0)], now)).toHaveLength(1);
+  });
+
+  it('names the event and its type', () => {
+    const [item] = buildNotifications(
+      [], ALL_ON, [evt(30, 60, { title: 'Loop with the platform team', event_type: 'onsite' })], now
+    );
+    expect(item.title).toMatch(/onsite/i);
+    expect(item.detail).toBe('Loop with the platform team');
+  });
+
+  it('counts down in the units that fit', () => {
+    expect(buildNotifications([], ALL_ON, [evt(45, 60)], now)[0].title).toMatch(/in 45 minutes/i);
+    expect(buildNotifications([], ALL_ON, [evt(120, 1440)], now)[0].title).toMatch(/in 2 hours/i);
+    expect(buildNotifications([], ALL_ON, [evt(2880, 10080)], now)[0].title).toMatch(/in 2 days/i);
+  });
+
+  it('links to the calendar, not to an application', () => {
+    expect(buildNotifications([], ALL_ON, [evt(30, 60)], now)[0].href).toBe('/calendar');
+  });
+
+  it('carries the linked application id when the event has one', () => {
+    const [item] = buildNotifications([], ALL_ON, [evt(30, 60, { application_id: 'app-9' })], now);
+    expect(item.applicationId).toBe('app-9');
+    expect(item.eventId).toBeTruthy();
+  });
+
+  it('routes each event type through the matching preference switch', () => {
+    const interview = evt(30, 60, { event_type: 'onsite' });
+    const deadline = evt(30, 60, { event_type: 'application_deadline' });
+    const followUp = evt(30, 60, { event_type: 'follow_up' });
+    const all = [interview, deadline, followUp];
+
+    expect(buildNotifications([], ALL_ON, all, now)).toHaveLength(3);
+    expect(buildNotifications([], { ...ALL_ON, interview_reminders: false }, all, now)).toHaveLength(2);
+    expect(buildNotifications([], { ...ALL_ON, deadline_reminders: false }, all, now)).toHaveLength(2);
+    expect(buildNotifications([], { ...ALL_ON, follow_up_reminders: false }, all, now)).toHaveLength(2);
+    expect(buildNotifications([], ALL_OFF, all, now)).toEqual([]);
+  });
+
+  it('produces stable, unique ids', () => {
+    const events = [evt(30, 60, { id: 'evt-a' }), evt(40, 60, { id: 'evt-b' })];
+    const first = buildNotifications([], ALL_ON, events, now).map(n => n.id);
+    expect(new Set(first).size).toBe(2);
+    expect(buildNotifications([], ALL_ON, events, now).map(n => n.id)).toEqual(first);
+  });
+
+  it('leaves application notifications untouched when no events are passed', () => {
+    const apps = [makeApplication({ id: 'a', deadline: localDate(1), follow_up_date: null })];
+    expect(buildNotifications(apps, ALL_ON)).toHaveLength(1);
+    expect(buildNotifications(apps, ALL_ON, [], now)).toHaveLength(1);
+  });
+
+  it('lists application and event reminders together', () => {
+    const apps = [makeApplication({ id: 'a', deadline: localDate(1), follow_up_date: null })];
+    const kinds = buildNotifications(apps, ALL_ON, [evt(30, 60)], now).map(n => n.kind);
+    expect(kinds).toContain('deadline');
+    expect(kinds).toContain('calendar_event');
   });
 });

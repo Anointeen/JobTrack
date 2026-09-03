@@ -9,6 +9,7 @@ import { makeApplication, makeHistory, localDate } from '../../test/factories';
  */
 
 const mocks = vi.hoisted(() => ({
+  openCreateEvent: vi.fn(),
   data: {
     getStatusHistory: vi.fn(),
     updateApplication: vi.fn(),
@@ -17,6 +18,13 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../../lib/dataService', () => ({ dataService: mocks.data }));
+
+// The detail modal offers to add an interview stage to the calendar, so it
+// consumes the event-form context. Mocked at the same boundary as the data
+// layer: these tests are about the detail modal, not the calendar.
+vi.mock('../../context/CalendarEventFormContext', () => ({
+  useCalendarEventForm: () => ({ openCreateEvent: mocks.openCreateEvent, openEditEvent: vi.fn() })
+}));
 
 import { ApplicationDetailModal } from './ApplicationDetailModal';
 
@@ -192,5 +200,114 @@ describe('modal actions', () => {
     await waitFor(() =>
       expect(screen.queryByRole('heading', { name: /delete application\?/i })).not.toBeInTheDocument());
     expect(onDelete).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Moving an application into an interview stage is the moment a user knows
+ * they have something to schedule, so the calendar is offered right there. It
+ * is an offer, not a step: the status change is already saved by the time it
+ * appears, and dismissing it changes nothing.
+ */
+describe('the Add to Calendar prompt', () => {
+  const moveTo = async (
+    user: ReturnType<typeof userEvent.setup>,
+    status: string,
+    from = 'Applied'
+  ) => {
+    mocks.data.updateApplication.mockResolvedValue(
+      makeApplication({ id: 'a1', status: status as any })
+    );
+    await user.click(screen.getByRole('button', { name: /change status/i }));
+    await user.selectOptions(await screen.findByLabelText(/new status/i), status);
+    await user.click(screen.getByRole('button', { name: /save new status/i }));
+    return from;
+  };
+
+  it('offers the calendar after moving to Interview', async () => {
+    const { user } = setup(makeApplication({ id: 'a1', status: 'Applied' }));
+    await moveTo(user, 'Interview');
+
+    expect(await screen.findByRole('button', { name: /add to calendar/i })).toBeInTheDocument();
+  });
+
+  it('offers the calendar after moving to Assessment', async () => {
+    const { user } = setup(makeApplication({ id: 'a1', status: 'Applied' }));
+    await moveTo(user, 'Assessment');
+
+    expect(await screen.findByRole('button', { name: /add to calendar/i })).toBeInTheDocument();
+  });
+
+  it('stays quiet for statuses that are not interview stages', async () => {
+    const { user } = setup(makeApplication({ id: 'a1', status: 'Applied' }));
+    await moveTo(user, 'Offer');
+
+    await waitFor(() => expect(mocks.data.updateApplication).toHaveBeenCalled());
+    expect(screen.queryByRole('button', { name: /add to calendar/i })).not.toBeInTheDocument();
+  });
+
+  it('does not offer the calendar when the status change failed', async () => {
+    // Scheduling around a change that was never saved would be worse than
+    // saying nothing.
+    mocks.data.updateApplication.mockRejectedValue(new Error('Status write rejected'));
+    const { user } = setup(makeApplication({ id: 'a1', status: 'Applied' }));
+
+    await user.click(screen.getByRole('button', { name: /change status/i }));
+    await user.selectOptions(await screen.findByLabelText(/new status/i), 'Interview');
+    await user.click(screen.getByRole('button', { name: /save new status/i }));
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add to calendar/i })).not.toBeInTheDocument();
+  });
+
+  it('opens the event form pre-filled with the application and stage', async () => {
+    const { user } = setup(
+      makeApplication({ id: 'a1', status: 'Applied', company_name: 'Globex', job_title: 'Staff Engineer' })
+    );
+    await moveTo(user, 'Interview');
+
+    await user.click(await screen.findByRole('button', { name: /add to calendar/i }));
+
+    expect(mocks.openCreateEvent).toHaveBeenCalledTimes(1);
+    const prefill = mocks.openCreateEvent.mock.calls[0][0];
+    expect(prefill.application_id).toBe('a1');
+    expect(prefill.event_type).toBe('onsite');
+    expect(prefill.title).toMatch(/globex/i);
+  });
+
+  it('pre-fills a technical interview for the assessment stage', async () => {
+    const { user } = setup(makeApplication({ id: 'a1', status: 'Applied' }));
+    await moveTo(user, 'Assessment');
+
+    await user.click(await screen.findByRole('button', { name: /add to calendar/i }));
+    expect(mocks.openCreateEvent.mock.calls[0][0].event_type).toBe('technical_interview');
+  });
+
+  it('closes this modal so two dialogs never stack', async () => {
+    const { onClose, user } = setup(makeApplication({ id: 'a1', status: 'Applied' }));
+    await moveTo(user, 'Interview');
+
+    await user.click(await screen.findByRole('button', { name: /add to calendar/i }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('can be dismissed without scheduling anything', async () => {
+    const { onClose, user } = setup(makeApplication({ id: 'a1', status: 'Applied' }));
+    await moveTo(user, 'Interview');
+
+    await user.click(await screen.findByRole('button', { name: /not now/i }));
+
+    expect(screen.queryByRole('button', { name: /add to calendar/i })).not.toBeInTheDocument();
+    expect(mocks.openCreateEvent).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('is announced as a status, not as an error', async () => {
+    const { user } = setup(makeApplication({ id: 'a1', status: 'Applied' }));
+    await moveTo(user, 'Interview');
+
+    await screen.findByRole('button', { name: /add to calendar/i });
+    expect(screen.getByRole('status')).toHaveTextContent(/put it on your calendar/i);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

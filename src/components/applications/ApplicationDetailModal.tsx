@@ -19,10 +19,13 @@ import {
   Flag,
   Compass,
   CalendarClock,
-  Tag as TagIcon
+  Tag as TagIcon,
+  CalendarPlus
 } from 'lucide-react';
 import { PriorityChip, FollowUpChip, TagList } from './ApplicationMetadata';
 import { formatSalary } from '../../lib/salary';
+import { INTERVIEW_STAGE_EVENT_TYPE, isInterviewStage } from '../../lib/calendar';
+import { useCalendarEventForm } from '../../context/CalendarEventFormContext';
 
 interface ApplicationDetailModalProps {
   application: Application | null;
@@ -49,6 +52,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   // all modal state was silently discarded. Bailing out after the hooks keeps
   // the order stable and makes the reset behaviour explicit instead of
   // incidental.
+  const { openCreateEvent } = useCalendarEventForm();
   const [history, setHistory] = useState<ApplicationStatusHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showStatusChange, setShowStatusChange] = useState(false);
@@ -56,6 +60,12 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const [statusNote, setStatusNote] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusError, setStatusError] = useState('');
+  /**
+   * Set after a status change into an interview stage, so the offer to put it
+   * on the calendar appears where the user just acted rather than as a modal
+   * interrupting them. Cleared once taken or dismissed.
+   */
+  const [calendarPrompt, setCalendarPrompt] = useState<ApplicationStatus | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Primitive fields, so the effect below keys off stable values rather than a
@@ -111,6 +121,10 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
         });
       }
       onStatusChanged(updated);
+      // Offer the calendar only once the write actually succeeded — prompting
+      // after a failed update would invite scheduling around a change that
+      // never happened.
+      setCalendarPrompt(isInterviewStage(newStatus) ? newStatus : null);
       setShowStatusChange(false);
       setStatusNote('');
       await loadHistory();
@@ -264,6 +278,55 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               disabled={updatingStatus || newStatus === application.status}
             >
               {updatingStatus ? 'Updating...' : 'Save New Status'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Offer to schedule the stage the user just moved into. A prompt, not a
+          forced step: it is dismissible and never blocks the status change,
+          which has already been saved by the time this appears. */}
+      {calendarPrompt && (
+        <div className="calendar-prompt" role="status">
+          <span className="calendar-prompt-icon" aria-hidden="true">
+            <CalendarPlus size={18} />
+          </span>
+
+          <div className="calendar-prompt-body">
+            <p className="calendar-prompt-title">
+              Moved to {calendarPrompt}. Put it on your calendar?
+            </p>
+            <p className="calendar-prompt-sub">
+              We'll link the event to {application.job_title} at {application.company_name}.
+            </p>
+          </div>
+
+          <div className="calendar-prompt-actions">
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                const eventType =
+                  INTERVIEW_STAGE_EVENT_TYPE[calendarPrompt] ?? 'technical_interview';
+                openCreateEvent({
+                  title: `${calendarPrompt} — ${application.company_name}`,
+                  event_type: eventType,
+                  application_id: application.id
+                });
+                setCalendarPrompt(null);
+                // The event form is its own modal; leaving this one open would
+                // stack two dialogs and trap focus between them.
+                onClose();
+              }}
+            >
+              <CalendarPlus size={16} /> Add to Calendar
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setCalendarPrompt(null)}
+            >
+              Not now
             </button>
           </div>
         </div>

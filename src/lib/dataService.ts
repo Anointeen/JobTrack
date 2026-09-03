@@ -5,7 +5,11 @@ import {
   ApplicationStatus,
   ApplicationStatusHistory,
   UserProfile,
-  NotificationPreferences
+  NotificationPreferences,
+  CalendarEvent,
+  CalendarEventInput,
+  CalendarEventUpdate,
+  DEFAULT_REMINDER_MINUTES
 } from '../types';
 import { supabase, isSupabaseConfigured, isDemoMode } from './supabase';
 import { friendlyDatabaseError } from './errorMessages';
@@ -14,7 +18,8 @@ const STORAGE_KEYS = {
   APPLICATIONS: 'jobtrack_applications_',
   HISTORY: 'jobtrack_status_history_',
   PROFILE: 'jobtrack_profile_',
-  NOTIFICATIONS: 'jobtrack_notifications_'
+  NOTIFICATIONS: 'jobtrack_notifications_',
+  CALENDAR: 'jobtrack_calendar_events_'
 };
 
 /**
@@ -229,6 +234,62 @@ const getInitialSeedHistory = (userId: string): ApplicationStatusHistory[] => {
       note: 'Received formal job offer!',
       created_at: daysAgo(1)
     }
+  ];
+};
+
+/**
+ * Development-only seed calendar events.
+ *
+ * Deliberately spread across the coming fortnight and pinned to the seeded
+ * applications, so demo mode exercises the month grid, the agenda view, the
+ * dashboard widget and the reminder path without anyone hand-entering rows.
+ */
+const getInitialSeedCalendarEvents = (userId: string): CalendarEvent[] => {
+  const now = new Date();
+  const at = (dayOffset: number, hour: number, minute = 0) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() + dayOffset);
+    d.setHours(hour, minute, 0, 0);
+    return d.toISOString();
+  };
+  const stamp = new Date().toISOString();
+
+  const seed = (
+    id: string,
+    title: string,
+    event_type: CalendarEvent['event_type'],
+    event_date: string,
+    application_id: string | null,
+    notes: string | null,
+    reminder_minutes_before: number | null
+  ): CalendarEvent => ({
+    id,
+    user_id: userId,
+    application_id,
+    title,
+    event_type,
+    event_date,
+    notes,
+    reminder_minutes_before,
+    created_at: stamp,
+    updated_at: stamp
+  });
+
+  return [
+    seed('evt-seed-1', 'Recruiter phone screen', 'phone_screen', at(1, 10, 30),
+      'app-seed-1', 'Ask about the team structure and on-call rotation.', 60),
+    seed('evt-seed-2', 'Take-home review call', 'technical_interview', at(3, 14),
+      'app-seed-3', 'Walk through the submitted solution.', 1440),
+    seed('evt-seed-3', 'Onsite loop (4 rounds)', 'onsite', at(6, 9),
+      'app-seed-1', 'System design, coding, behavioural, hiring manager.', 1440),
+    seed('evt-seed-4', 'Application closes', 'application_deadline', at(8, 23, 59),
+      'app-seed-4', null, 2880),
+    seed('evt-seed-5', 'Chase recruiter for an update', 'follow_up', at(4, 9),
+      'app-seed-5', 'No reply since the assessment was submitted.', 60),
+    seed('evt-seed-6', 'Respond to offer', 'offer_deadline', at(11, 17),
+      'app-seed-2', 'Decision needed before the offer lapses.', 2880),
+    seed('evt-seed-7', 'Coffee with referral contact', 'other', at(2, 16),
+      null, null, 60)
   ];
 };
 
@@ -620,6 +681,148 @@ export const dataService = {
     return fullProfile;
   },
 
+  // --- CALENDAR EVENTS ---
+  async getCalendarEvents(userId: string): Promise<CalendarEvent[]> {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', userId)
+        .order('event_date', { ascending: true });
+
+      if (error) {
+        console.error('Supabase fetch calendar events error:', error);
+        throw new Error(friendlyDatabaseError(error, 'Your calendar could not be loaded. Please try again.'));
+      }
+      return data as CalendarEvent[];
+    }
+
+    // Development-only local store
+    assertDemoMode('load calendar events');
+    const key = STORAGE_KEYS.CALENDAR + userId;
+    const stored = localStorage.getItem(key);
+    if (!stored) {
+      const initial = getInitialSeedCalendarEvents(userId);
+      localStorage.setItem(key, JSON.stringify(initial));
+      return initial;
+    }
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return [];
+    }
+  },
+
+  async createCalendarEvent(
+    userId: string,
+    eventData: CalendarEventInput
+  ): Promise<CalendarEvent> {
+    const now = new Date().toISOString();
+
+    if (isSupabaseConfigured && supabase) {
+      // Omitted keys are dropped during serialisation, so the column defaults
+      // from migration 0004 (event_type 'other', reminder 60) apply whenever
+      // the caller does not supply them. `.select()` returns the stored row,
+      // including whatever the database filled in.
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .insert([{ user_id: userId, ...eventData }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase create calendar event error:', error);
+        throw new Error(friendlyDatabaseError(error, 'The event could not be saved. Please try again.'));
+      }
+      return data as CalendarEvent;
+    }
+
+    // Development-only local store
+    assertDemoMode('create a calendar event');
+    const newEvent: CalendarEvent = {
+      // Mirrors the NOT NULL DEFAULTs the database applies, so a locally
+      // created record has the same shape as a persisted one.
+      event_type: eventData.event_type ?? 'other',
+      reminder_minutes_before:
+        eventData.reminder_minutes_before === undefined
+          ? DEFAULT_REMINDER_MINUTES
+          : eventData.reminder_minutes_before,
+      ...eventData,
+      id: 'evt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      user_id: userId,
+      created_at: now,
+      updated_at: now
+    };
+
+    const events = await this.getCalendarEvents(userId);
+    events.push(newEvent);
+    localStorage.setItem(STORAGE_KEYS.CALENDAR + userId, JSON.stringify(events));
+    return newEvent;
+  },
+
+  async updateCalendarEvent(
+    userId: string,
+    id: string,
+    updates: CalendarEventUpdate
+  ): Promise<CalendarEvent> {
+    if (isSupabaseConfigured && supabase) {
+      // `updated_at` is maintained by the set_calendar_events_updated_at
+      // trigger, so it is deliberately not sent here.
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .update({ ...updates })
+        .eq('id', id)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase update calendar event error:', error);
+        throw new Error(friendlyDatabaseError(error, 'The event could not be updated. Please try again.'));
+      }
+      return data as CalendarEvent;
+    }
+
+    // Development-only local store
+    assertDemoMode('update a calendar event');
+    const events = await this.getCalendarEvents(userId);
+    const index = events.findIndex(e => e.id === id);
+    if (index === -1) throw new Error('Event not found or unauthorized.');
+
+    const updated: CalendarEvent = {
+      ...events[index],
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+    events[index] = updated;
+    localStorage.setItem(STORAGE_KEYS.CALENDAR + userId, JSON.stringify(events));
+    return updated;
+  },
+
+  async deleteCalendarEvent(userId: string, id: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Supabase delete calendar event error:', error);
+        throw new Error(friendlyDatabaseError(error, 'The event could not be deleted. Please try again.'));
+      }
+      return;
+    }
+
+    // Development-only local store
+    assertDemoMode('delete a calendar event');
+    const events = await this.getCalendarEvents(userId);
+    localStorage.setItem(
+      STORAGE_KEYS.CALENDAR + userId,
+      JSON.stringify(events.filter(e => e.id !== id))
+    );
+  },
+
   // --- NOTIFICATION PREFERENCES ---
   async getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
     const defaults: NotificationPreferences = {
@@ -716,6 +919,19 @@ export const dataService = {
    */
   async deleteAccount(userId: string): Promise<void> {
     if (isSupabaseConfigured && supabase) {
+      // Calendar events go first. Those linked to an application would cascade
+      // with it, but standalone events (application_id NULL) would not, and
+      // they are just as much the user's data.
+      const { error: calendarError } = await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('user_id', userId);
+
+      if (calendarError) {
+        console.error('Supabase delete calendar events error:', calendarError);
+        throw new Error(friendlyDatabaseError(calendarError, 'Your calendar events could not be deleted.'));
+      }
+
       // Deleting applications cascades to application_status_history.
       const { error: applicationsError } = await supabase
         .from('applications')
@@ -756,5 +972,6 @@ export const dataService = {
     localStorage.removeItem(STORAGE_KEYS.HISTORY + userId);
     localStorage.removeItem(STORAGE_KEYS.PROFILE + userId);
     localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS + userId);
+    localStorage.removeItem(STORAGE_KEYS.CALENDAR + userId);
   }
 };

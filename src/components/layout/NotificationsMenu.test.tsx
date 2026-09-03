@@ -4,7 +4,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { makeApplication, makeUser, localDate } from '../../test/factories';
-import type { Application } from '../../types';
+import type { Application, CalendarEvent } from '../../types';
 
 /**
  * The notifications control was unreachable in practice: `display: none` below
@@ -17,6 +17,7 @@ import type { Application } from '../../types';
 
 const mocks = vi.hoisted(() => ({
   applications: [] as Application[],
+  events: [] as CalendarEvent[],
   getNotificationPreferences: vi.fn()
 }));
 
@@ -26,6 +27,10 @@ vi.mock('../../context/AuthContext', () => ({
 
 vi.mock('../../context/ApplicationsContext', () => ({
   useApplications: () => ({ applications: mocks.applications })
+}));
+
+vi.mock('../../context/CalendarContext', () => ({
+  useCalendar: () => ({ events: mocks.events })
 }));
 
 vi.mock('../../lib/dataService', () => ({
@@ -50,6 +55,7 @@ const toggle = () => screen.getByRole('button', { name: /notifications/i });
 
 beforeEach(() => {
   mocks.applications = [];
+  mocks.events = [];
   mocks.getNotificationPreferences.mockReset().mockResolvedValue({
     id: 'n1',
     user_id: 'user-1',

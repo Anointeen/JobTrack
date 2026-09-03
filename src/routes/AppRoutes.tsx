@@ -38,7 +38,7 @@ const SettingsView = lazy(() =>
   import('../components/settings/SettingsView').then(m => ({ default: m.SettingsView }))
 );
 const CalendarView = lazy(() =>
-  import('../components/placeholder/CalendarView').then(m => ({ default: m.CalendarView }))
+  import('../components/calendar/CalendarView').then(m => ({ default: m.CalendarView }))
 );
 const DocumentsView = lazy(() =>
   import('../components/placeholder/DocumentsView').then(m => ({ default: m.DocumentsView }))

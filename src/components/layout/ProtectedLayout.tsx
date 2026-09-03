@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { ToastProvider } from '../../context/ToastContext';
 import { ApplicationsProvider } from '../../context/ApplicationsContext';
 import { ApplicationFormProvider } from '../../context/ApplicationFormContext';
+import { CalendarProvider } from '../../context/CalendarContext';
+import { CalendarEventFormProvider } from '../../context/CalendarEventFormContext';
 import { OnboardingModal } from '../auth/OnboardingModal';
 import { AppLayout } from './AppLayout';
 import { FullScreenLoader } from '../common/FullScreenLoader';
@@ -40,9 +42,16 @@ export const ProtectedLayout: React.FC = () => {
   return (
     <ToastProvider>
       <ApplicationsProvider>
-        <ApplicationFormProvider>
-          <AppLayout />
-        </ApplicationFormProvider>
+        <CalendarProvider>
+          <ApplicationFormProvider>
+            {/* Below the applications and calendar providers: the event form
+                reads both — applications to offer as links, the calendar to
+                write into. */}
+            <CalendarEventFormProvider>
+              <AppLayout />
+            </CalendarEventFormProvider>
+          </ApplicationFormProvider>
+        </CalendarProvider>
       </ApplicationsProvider>
     </ToastProvider>
   );

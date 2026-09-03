@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Bell, CalendarClock, CalendarCheck, MessageSquare, Settings as SettingsIcon,
+  Bell, CalendarClock, CalendarCheck, MessageSquare, CalendarDays, Settings as SettingsIcon,
   type LucideIcon
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApplications } from '../../context/ApplicationsContext';
+import { useCalendar } from '../../context/CalendarContext';
 import { dataService } from '../../lib/dataService';
 import {
   AppNotification,
@@ -40,7 +41,8 @@ const DEFAULT_PREFS: Pick<
 const KIND_ICON: Record<NotificationKind, LucideIcon> = {
   deadline: CalendarClock,
   interview: CalendarCheck,
-  follow_up: MessageSquare
+  follow_up: MessageSquare,
+  calendar_event: CalendarDays
 };
 
 /** Colour roles already defined for meta chips, so both themes are covered. */
@@ -53,6 +55,7 @@ const URGENCY_TOKENS: Record<AppNotification['urgency'], { fg: string; bg: strin
 export const NotificationsMenu: React.FC = () => {
   const { user } = useAuth();
   const { applications } = useApplications();
+  const { events } = useCalendar();
 
   const [open, setOpen] = useState(false);
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);
@@ -91,8 +94,8 @@ export const NotificationsMenu: React.FC = () => {
   }, [userId]);
 
   const notifications = useMemo(
-    () => buildNotifications(applications, prefs),
-    [applications, prefs]
+    () => buildNotifications(applications, prefs, events),
+    [applications, prefs, events]
   );
   const count = notifications.length;
 
@@ -193,7 +196,7 @@ export const NotificationsMenu: React.FC = () => {
                 return (
                   <li key={item.id}>
                     <Link
-                      to={`/applications/${item.applicationId}`}
+                      to={item.href}
                       className="notifications-item"
                       onClick={() => setOpen(false)}
                     >

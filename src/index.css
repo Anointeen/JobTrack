@@ -148,6 +148,10 @@
   --meta-neutral-bg: #f1f5f9;
   --meta-neutral-text: #475569;
 
+  /* The one event tone with no status-badge equivalent to borrow. */
+  --evt-indigo-bg: #e0e7ff;
+  --evt-indigo-text: #4338ca;
+
   --tag-bg: #eef2ff;
   --tag-text: #4338ca;
   --tag-border: #c7d2fe;
@@ -255,6 +259,9 @@
   --meta-warn-text: #fde68a;
   --meta-neutral-bg: #334155;
   --meta-neutral-text: #cbd5e1;
+
+  --evt-indigo-bg: #3730a3;
+  --evt-indigo-text: #c7d2fe;
 
   --tag-bg: rgba(99, 102, 241, 0.18);
   --tag-text: #c7d2fe;
@@ -1105,6 +1112,560 @@ p, span, td, th, li, a, label {
   color: var(--text-muted);
   /* Job titles and company names are arbitrary user text. */
   overflow-wrap: anywhere;
+}
+
+
+/* --- Calendar ----------------------------------------------------------
+   Event-type tones deliberately reuse the status-badge pairs above rather
+   than inventing a second palette: those pairs are already defined for both
+   themes and already clear WCAG AA, so the calendar inherits both properties
+   instead of re-deriving them. Raw --amber-700 style tokens are never used
+   here — they are dark ink for light surfaces and go unreadable when the dark
+   theme flips the background beneath them. */
+.evt-sky     { background-color: var(--badge-applied-bg);    color: var(--badge-applied-text); }
+.evt-indigo  { background-color: var(--evt-indigo-bg);       color: var(--evt-indigo-text); }
+.evt-purple  { background-color: var(--badge-assessment-bg); color: var(--badge-assessment-text); }
+.evt-rose    { background-color: var(--badge-rejected-bg);   color: var(--badge-rejected-text); }
+.evt-amber   { background-color: var(--badge-interview-bg);  color: var(--badge-interview-text); }
+.evt-emerald { background-color: var(--badge-offer-bg);      color: var(--badge-offer-text); }
+.evt-slate   { background-color: var(--badge-withdrawn-bg);  color: var(--badge-withdrawn-text); }
+
+/* Compact form: a colour dot whose label survives as screen-reader text. */
+.evt-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  /* The dot carries the tone as its fill, so the text colour becomes the fill. */
+  background-color: currentColor;
+}
+
+.calendar-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.calendar-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.calendar-month-label {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-heading);
+  /* Steady width so stepping months does not shuffle the buttons sideways. */
+  min-width: 9.5rem;
+  text-align: center;
+}
+
+.calendar-view-toggle {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-subtle);
+}
+
+.calendar-view-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border: none;
+  border-radius: calc(var(--radius-md) - 3px);
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.calendar-view-option.is-active {
+  background-color: var(--bg-surface);
+  color: var(--text-heading);
+  box-shadow: var(--shadow-sm);
+}
+
+.calendar-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  /* minmax(0, 1fr) rather than 1fr: the implicit min-width:auto of a 1fr track
+     cannot shrink below its content, which is what pushed the landing page
+     sideways at 375px in Phase 4. */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-weekdays {
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-subtle);
+}
+
+.calendar-weekday {
+  padding: 0.625rem 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.calendar-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 112px;
+  min-width: 0;
+  padding: 0.375rem;
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+}
+
+/* No double border down the right edge or along the bottom row. */
+.calendar-cell:nth-child(7n) { border-right: none; }
+.calendar-cell:nth-last-child(-n + 7) { border-bottom: none; }
+
+.calendar-cell.is-outside {
+  background-color: var(--bg-subtle);
+}
+
+.calendar-cell.is-outside .calendar-cell-day {
+  color: var(--text-subtle);
+}
+
+.calendar-cell.is-today {
+  /* An inset ring rather than an outline, so it does not overlap the grid
+     lines of the neighbouring cells. */
+  box-shadow: inset 0 0 0 2px var(--primary-600);
+}
+
+.calendar-cell-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.calendar-cell-day {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.calendar-cell.is-today .calendar-cell-day {
+  color: var(--primary-text);
+}
+
+.calendar-cell-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  /* Hidden until the day is hovered or the button is focused, so 42 add
+     buttons do not shout over the events themselves. Never display:none —
+     that would take it out of the tab order entirely. */
+  opacity: 0;
+}
+
+.calendar-cell:hover .calendar-cell-add,
+.calendar-cell-add:focus-visible {
+  opacity: 1;
+}
+
+.calendar-cell-add:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--primary-text);
+}
+
+/* Touch has no hover, so the control would otherwise be unreachable there. */
+@media (hover: none) {
+  .calendar-cell-add { opacity: 1; }
+}
+
+.calendar-cell-events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.calendar-event-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.6875rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendar-event-pill:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.calendar-event-pill-time {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.calendar-event-pill-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-cell-more {
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--primary-text);
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendar-month-empty {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* --- Agenda list -------------------------------------------------------- */
+.agenda-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.agenda-list li + li {
+  border-top: 1px solid var(--border-color);
+}
+
+.agenda-item {
+  display: grid;
+  grid-template-columns: minmax(0, 10rem) minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.875rem 0;
+}
+
+.agenda-when {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.agenda-when-date {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.agenda-when-time {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.agenda-when-rel {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.agenda-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+/* The primary control of the row. Styled as text so the list reads as a list
+   rather than a wall of buttons, but it is a real button underneath. */
+.agenda-title {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-heading);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.agenda-title:hover {
+  color: var(--primary-text);
+  text-decoration: underline;
+}
+
+.agenda-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.agenda-notes {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  /* Notes are arbitrary user text, including pasted dial-in blocks. */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.event-app-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary-text);
+  text-decoration: none;
+}
+
+.event-app-link:hover {
+  text-decoration: underline;
+}
+
+.event-app-link > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Grouped controls in the event form. Browser default fieldset chrome is
+   removed so it sits flush with the surrounding .form-group rows. */
+.event-link-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.event-reminder-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.event-reminder-toggle input {
+  accent-color: var(--primary-600);
+  cursor: pointer;
+}
+
+/* Below ~640px the month grid's seven columns cannot hold event titles, so
+   cells shrink to the day number plus a row of type dots. The agenda view is
+   the usable one at this width and the toggle stays available. */
+@media (max-width: 640px) {
+  .calendar-cell {
+    min-height: 68px;
+    padding: 0.25rem;
+  }
+
+  .calendar-event-pill-time,
+  .calendar-event-pill-title {
+    display: none;
+  }
+
+  .calendar-cell-events {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+
+  .calendar-event-pill {
+    width: auto;
+    padding: 2px;
+  }
+
+  .agenda-item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
+
+  .agenda-when {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+}
+
+
+/* Dashboard "Upcoming This Week" rows. */
+.upcoming-week-item {
+  display: grid;
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-subtle);
+  text-decoration: none;
+  color: inherit;
+}
+
+.upcoming-week-item:hover {
+  background-color: var(--bg-surface-hover);
+  border-color: var(--primary-200);
+}
+
+.upcoming-week-when {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.upcoming-week-rel {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.upcoming-week-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.upcoming-week-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.upcoming-week-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upcoming-week-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  /* The badge is the first thing to go when the row cannot hold three
+     columns; the type is still named in the calendar itself. */
+  .upcoming-week-item {
+    grid-template-columns: minmax(0, 4.5rem) minmax(0, 1fr);
+  }
+
+  .upcoming-week-item > .chip {
+    display: none;
+  }
+}
+
+
+/* "Add to Calendar" offer after a status change into an interview stage. */
+.calendar-prompt {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--primary-200);
+  border-radius: var(--radius-md);
+  background-color: var(--primary-50);
+}
+
+.calendar-prompt-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--bg-surface);
+  color: var(--primary-text);
+}
+
+.calendar-prompt-body {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.calendar-prompt-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin: 0;
+}
+
+.calendar-prompt-sub {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 2px 0 0 0;
+  overflow-wrap: anywhere;
+}
+
+.calendar-prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 /* --- Landing page ------------------------------------------------------

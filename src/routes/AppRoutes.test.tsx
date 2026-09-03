@@ -41,7 +41,11 @@ const mocks = vi.hoisted(() => ({
     getNotificationPreferences: vi.fn(),
     createApplication: vi.fn(),
     updateApplication: vi.fn(),
-    deleteApplication: vi.fn()
+    deleteApplication: vi.fn(),
+    getCalendarEvents: vi.fn(),
+    createCalendarEvent: vi.fn(),
+    updateCalendarEvent: vi.fn(),
+    deleteCalendarEvent: vi.fn()
   }
 }));
 
@@ -113,7 +117,7 @@ beforeAll(async () => {
     import('../components/applications/ApplicationDetailRoute'),
     import('../components/profile/ProfileView'),
     import('../components/settings/SettingsView'),
-    import('../components/placeholder/CalendarView'),
+    import('../components/calendar/CalendarView'),
     import('../components/placeholder/DocumentsView'),
     import('../components/common/NotFoundPage')
   ]);
@@ -130,6 +134,7 @@ beforeEach(() => {
   mocks.data.getAllStatusHistory.mockResolvedValue([]);
   mocks.data.getStatusHistory.mockResolvedValue([]);
   mocks.data.getProfile.mockResolvedValue(makeProfile());
+  mocks.data.getCalendarEvents.mockResolvedValue([]);
   mocks.data.getNotificationPreferences.mockResolvedValue({
     id: 'n1', user_id: 'user-1',
     deadline_reminders: true, interview_reminders: true, follow_up_reminders: true
