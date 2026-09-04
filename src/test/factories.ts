@@ -2,6 +2,8 @@ import {
   Application,
   ApplicationStatusHistory,
   CalendarEvent,
+  CareerDocument,
+  ApplicationDocumentLink,
   NotificationPreferences,
   UserProfile,
   UserSession
@@ -123,3 +125,37 @@ export const localDateTime = (dayOffset: number, hour = 9, minute = 0): string =
   d.setHours(hour, minute, 0, 0);
   return d.toISOString();
 };
+
+/** A document in the user's library. Defaults to an uploaded resume. */
+export const makeDocument = (over: Partial<CareerDocument> = {}): CareerDocument => ({
+  id: over.id ?? `doc-${++seq}`,
+  user_id: 'user-1',
+  name: 'Resume v1',
+  doc_type: 'resume',
+  storage_path: 'user-1/abc.pdf',
+  external_url: null,
+  is_default: false,
+  created_at: '2026-02-01T00:00:00.000Z',
+  ...over
+});
+
+/** A portfolio link, which carries a URL instead of a stored file. */
+export const makePortfolioLink = (over: Partial<CareerDocument> = {}): CareerDocument =>
+  makeDocument({
+    name: 'Portfolio',
+    doc_type: 'portfolio_link',
+    storage_path: null,
+    external_url: 'https://example.test/portfolio',
+    ...over
+  });
+
+export const makeDocumentLink = (
+  over: Partial<ApplicationDocumentLink> = {}
+): ApplicationDocumentLink => ({
+  id: over.id ?? `appdoc-${++seq}`,
+  user_id: 'user-1',
+  application_id: 'app-1',
+  document_id: 'doc-1',
+  created_at: '2026-02-01T00:00:00.000Z',
+  ...over
+});

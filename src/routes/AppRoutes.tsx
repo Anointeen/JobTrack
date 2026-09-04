@@ -41,7 +41,7 @@ const CalendarView = lazy(() =>
   import('../components/calendar/CalendarView').then(m => ({ default: m.CalendarView }))
 );
 const DocumentsView = lazy(() =>
-  import('../components/placeholder/DocumentsView').then(m => ({ default: m.DocumentsView }))
+  import('../components/documents/DocumentsView').then(m => ({ default: m.DocumentsView }))
 );
 const NotFoundPage = lazy(() =>
   import('../components/common/NotFoundPage').then(m => ({ default: m.NotFoundPage }))

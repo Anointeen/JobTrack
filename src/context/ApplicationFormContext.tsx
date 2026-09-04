@@ -6,6 +6,7 @@ import { Modal } from '../components/common/Modal';
 import { isInterviewStage } from '../lib/calendar';
 import { useApplications } from './ApplicationsContext';
 import { useCalendarEventForm } from './CalendarEventFormContext';
+import { useDocuments } from './DocumentsContext';
 import { useToast } from './ToastContext';
 
 interface ApplicationFormContextType {
@@ -26,6 +27,7 @@ const ApplicationFormContext = createContext<ApplicationFormContextType | undefi
 export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { createApplication, updateApplication } = useApplications();
   const { openCreateEvent } = useCalendarEventForm();
+  const { documentsFor, attachDocuments, detachDocument } = useDocuments();
   const { addToast } = useToast();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -57,13 +59,30 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
     setEditing(null);
   }, []);
 
+  /**
+   * Saves the application, then reconciles its attached documents.
+   *
+   * The attachments are a separate table, so they are a separate write. It
+   * happens after the application succeeds: attaching documents to a row
+   * that failed to save would leave links pointing at nothing.
+   */
   const handleSave = async (
-    data: ApplicationInput
+    data: ApplicationInput,
+    documentIds: string[] = []
   ) => {
     try {
       if (editing) {
         const previousStatus = editing.status;
         const updated = await updateApplication(editing.id, data);
+
+        // Reconcile against what was already attached: add the newly
+        // ticked, remove the unticked. Sending the whole list blindly
+        // would trip the unique (application_id, document_id) constraint.
+        const before = documentsFor(editing.id).map(d => d.id);
+        const added = documentIds.filter(id => !before.includes(id));
+        const removed = before.filter(id => !documentIds.includes(id));
+        if (added.length > 0) await attachDocuments(editing.id, added);
+        for (const id of removed) await detachDocument(editing.id, id);
         addToast(
           'success',
           'Application Updated',
@@ -78,6 +97,9 @@ export const ApplicationFormProvider: React.FC<{ children: React.ReactNode }> = 
         }
       } else {
         const created = await createApplication(data);
+
+        // Nothing to reconcile on a new application — everything ticked is new.
+        if (documentIds.length > 0) await attachDocuments(created.id, documentIds);
         addToast(
           'success',
           'Application Added',

@@ -9,7 +9,11 @@ import {
   CalendarEvent,
   CalendarEventInput,
   CalendarEventUpdate,
-  DEFAULT_REMINDER_MINUTES
+  DEFAULT_REMINDER_MINUTES,
+  CareerDocument,
+  CareerDocumentInput,
+  DocumentType,
+  ApplicationDocumentLink
 } from '../types';
 import { supabase, isSupabaseConfigured, isDemoMode } from './supabase';
 import { friendlyDatabaseError } from './errorMessages';
@@ -19,8 +23,13 @@ const STORAGE_KEYS = {
   HISTORY: 'jobtrack_status_history_',
   PROFILE: 'jobtrack_profile_',
   NOTIFICATIONS: 'jobtrack_notifications_',
-  CALENDAR: 'jobtrack_calendar_events_'
+  CALENDAR: 'jobtrack_calendar_events_',
+  DOCUMENTS: 'jobtrack_documents_',
+  APP_DOCUMENTS: 'jobtrack_application_documents_'
 };
+
+/** The private bucket created in migration 0005. */
+export const DOCUMENTS_BUCKET = 'career-documents';
 
 /**
  * Guards every localStorage code path below.
@@ -823,6 +832,323 @@ export const dataService = {
     );
   },
 
+  // --- DOCUMENTS ---
+  async getDocuments(userId: string): Promise<CareerDocument[]> {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Supabase fetch documents error:', error);
+        throw new Error(friendlyDatabaseError(error, 'Your documents could not be loaded. Please try again.'));
+      }
+      return data as CareerDocument[];
+    }
+
+    // Development-only local store
+    assertDemoMode('load documents');
+    const stored = localStorage.getItem(STORAGE_KEYS.DOCUMENTS + userId);
+    if (!stored) return [];
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * Uploads a file to the private career-documents bucket and returns its path.
+   *
+   * The path always begins with the user's id, because that first segment is
+   * exactly what the storage policies in migration 0005 compare against
+   * auth.uid(). A name is generated rather than reusing the original filename:
+   * user-supplied names collide, may contain characters the storage API
+   * rejects, and would leak the local filename into a shared namespace. The
+   * label the user typed lives in documents.name instead.
+   */
+  async uploadDocumentFile(userId: string, file: File): Promise<string> {
+    const dot = file.name.lastIndexOf('.');
+    const ext = dot > -1 ? file.name.slice(dot).toLowerCase() : '';
+    const path = `${userId}/${crypto.randomUUID()}${ext}`;
+
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.storage
+        .from(DOCUMENTS_BUCKET)
+        .upload(path, file, { cacheControl: '3600', upsert: false });
+
+      if (error) {
+        console.error('Supabase upload document error:', error);
+        throw new Error('The file could not be uploaded. Please check your connection and try again.');
+      }
+      return path;
+    }
+
+    // Development-only local store. The bytes are not kept — demo mode has no
+    // storage backend — so downloads are unavailable there, which the UI says.
+    assertDemoMode('upload a document');
+    return path;
+  },
+
+  /**
+   * A short-lived signed URL for reading a stored file.
+   *
+   * The bucket is private, so there is no permanent public URL to hand out.
+   * Signed URLs expire, which is the point: a resume carries a home address
+   * and a phone number, and a link that never expires is a link that leaks.
+   */
+  async getDocumentUrl(storagePath: string, expiresInSeconds = 60): Promise<string> {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.storage
+        .from(DOCUMENTS_BUCKET)
+        .createSignedUrl(storagePath, expiresInSeconds);
+
+      if (error || !data?.signedUrl) {
+        console.error('Supabase signed url error:', error);
+        throw new Error('That file could not be opened. Please try again.');
+      }
+      return data.signedUrl;
+    }
+
+    assertDemoMode('open a document');
+    throw new Error('File downloads are unavailable in local demo mode.');
+  },
+
+  async createDocument(
+    userId: string,
+    docData: CareerDocumentInput
+  ): Promise<CareerDocument> {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('documents')
+        .insert([{ user_id: userId, ...docData }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase create document error:', error);
+        throw new Error(friendlyDatabaseError(error, 'The document could not be saved. Please try again.'));
+      }
+      return data as CareerDocument;
+    }
+
+    // Development-only local store
+    assertDemoMode('create a document');
+    const newDoc: CareerDocument = {
+      is_default: docData.is_default ?? false,
+      ...docData,
+      id: 'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      user_id: userId,
+      created_at: new Date().toISOString()
+    };
+    const docs = await this.getDocuments(userId);
+    docs.unshift(newDoc);
+    localStorage.setItem(STORAGE_KEYS.DOCUMENTS + userId, JSON.stringify(docs));
+    return newDoc;
+  },
+
+  /**
+   * Marks one document as the default for its type, clearing the previous one.
+   *
+   * Two writes rather than one: the database has a partial unique index over
+   * (user_id, doc_type) WHERE is_default, so setting a second default without
+   * clearing the first is rejected outright. Clearing first is what makes the
+   * common case work; the index is what stops a half-completed pair of writes
+   * leaving two defaults behind.
+   */
+  async setDefaultDocument(
+    userId: string,
+    id: string,
+    docType: DocumentType,
+    isDefault: boolean
+  ): Promise<CareerDocument> {
+    if (isSupabaseConfigured && supabase) {
+      if (isDefault) {
+        const { error: clearError } = await supabase
+          .from('documents')
+          .update({ is_default: false })
+          .eq('user_id', userId)
+          .eq('doc_type', docType)
+          .eq('is_default', true);
+
+        if (clearError) {
+          console.error('Supabase clear default document error:', clearError);
+          throw new Error(friendlyDatabaseError(clearError, 'The default could not be updated. Please try again.'));
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('documents')
+        .update({ is_default: isDefault })
+        .eq('id', id)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase set default document error:', error);
+        throw new Error(friendlyDatabaseError(error, 'The default could not be updated. Please try again.'));
+      }
+      return data as CareerDocument;
+    }
+
+    // Development-only local store
+    assertDemoMode('set a default document');
+    const docs = await this.getDocuments(userId);
+    for (const d of docs) {
+      if (isDefault && d.doc_type === docType) d.is_default = false;
+      if (d.id === id) d.is_default = isDefault;
+    }
+    localStorage.setItem(STORAGE_KEYS.DOCUMENTS + userId, JSON.stringify(docs));
+    const updated = docs.find(d => d.id === id);
+    if (!updated) throw new Error('Document not found.');
+    return updated;
+  },
+
+  /**
+   * Deletes a document, and the stored file with it.
+   *
+   * The row goes first. If the file removal fails afterwards the user still
+   * sees the document gone, and the orphan is invisible and costs only storage;
+   * deleting the file first and then failing on the row would leave a visible
+   * document that cannot be opened, which is the worse of the two.
+   */
+  async deleteDocument(userId: string, doc: CareerDocument): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', doc.id)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Supabase delete document error:', error);
+        throw new Error(friendlyDatabaseError(error, 'The document could not be deleted. Please try again.'));
+      }
+
+      if (doc.storage_path) {
+        const { error: fileError } = await supabase.storage
+          .from(DOCUMENTS_BUCKET)
+          .remove([doc.storage_path]);
+        // Logged, not thrown: the row is already gone and the user's intent
+        // was served.
+        if (fileError) console.error('Supabase remove document file error:', fileError);
+      }
+      return;
+    }
+
+    // Development-only local store
+    assertDemoMode('delete a document');
+    const docs = await this.getDocuments(userId);
+    localStorage.setItem(
+      STORAGE_KEYS.DOCUMENTS + userId,
+      JSON.stringify(docs.filter(d => d.id !== doc.id))
+    );
+  },
+
+  // --- APPLICATION <-> DOCUMENT LINKS ---
+  async getApplicationDocuments(userId: string): Promise<ApplicationDocumentLink[]> {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('application_documents')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Supabase fetch application documents error:', error);
+        throw new Error(friendlyDatabaseError(error, 'Attached documents could not be loaded.'));
+      }
+      return data as ApplicationDocumentLink[];
+    }
+
+    assertDemoMode('load attached documents');
+    const stored = localStorage.getItem(STORAGE_KEYS.APP_DOCUMENTS + userId);
+    if (!stored) return [];
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * Attaches documents to an application.
+   *
+   * `user_id` is sent explicitly. It is not redundant with RLS: the composite
+   * foreign keys in migration 0005 use it to prove that both the application
+   * and the document belong to this same user, which RLS on the join table
+   * alone cannot establish.
+   */
+  async attachDocuments(
+    userId: string,
+    applicationId: string,
+    documentIds: string[]
+  ): Promise<void> {
+    if (documentIds.length === 0) return;
+
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase
+        .from('application_documents')
+        .insert(documentIds.map(document_id => ({
+          user_id: userId,
+          application_id: applicationId,
+          document_id
+        })));
+
+      if (error) {
+        console.error('Supabase attach documents error:', error);
+        throw new Error(friendlyDatabaseError(error, 'The documents could not be attached. Please try again.'));
+      }
+      return;
+    }
+
+    assertDemoMode('attach documents');
+    const links = await this.getApplicationDocuments(userId);
+    for (const document_id of documentIds) {
+      if (links.some(l => l.application_id === applicationId && l.document_id === document_id)) continue;
+      links.push({
+        id: 'appdoc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        user_id: userId,
+        application_id: applicationId,
+        document_id,
+        created_at: new Date().toISOString()
+      });
+    }
+    localStorage.setItem(STORAGE_KEYS.APP_DOCUMENTS + userId, JSON.stringify(links));
+  },
+
+  async detachDocument(
+    userId: string,
+    applicationId: string,
+    documentId: string
+  ): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase
+        .from('application_documents')
+        .delete()
+        .eq('user_id', userId)
+        .eq('application_id', applicationId)
+        .eq('document_id', documentId);
+
+      if (error) {
+        console.error('Supabase detach document error:', error);
+        throw new Error(friendlyDatabaseError(error, 'The document could not be detached. Please try again.'));
+      }
+      return;
+    }
+
+    assertDemoMode('detach a document');
+    const links = await this.getApplicationDocuments(userId);
+    localStorage.setItem(
+      STORAGE_KEYS.APP_DOCUMENTS + userId,
+      JSON.stringify(links.filter(
+        l => !(l.application_id === applicationId && l.document_id === documentId)
+      ))
+    );
+  },
+
   // --- NOTIFICATION PREFERENCES ---
   async getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
     const defaults: NotificationPreferences = {
@@ -919,6 +1245,34 @@ export const dataService = {
    */
   async deleteAccount(userId: string): Promise<void> {
     if (isSupabaseConfigured && supabase) {
+      // Documents first, and their stored files with them. The rows would
+      // cascade from auth.users, but that record is never deleted (see the
+      // Admin API note in PRODUCTION_CHECKLIST), and the *files* would not
+      // cascade from anything at all.
+      const { data: ownDocs } = await supabase
+        .from('documents')
+        .select('storage_path')
+        .eq('user_id', userId);
+
+      const paths = (ownDocs ?? [])
+        .map(d => (d as { storage_path: string | null }).storage_path)
+        .filter((p): p is string => !!p);
+      if (paths.length > 0) {
+        const { error: filesError } = await supabase.storage.from(DOCUMENTS_BUCKET).remove(paths);
+        if (filesError) console.error('Supabase remove document files error:', filesError);
+      }
+
+      // Deleting documents cascades to application_documents.
+      const { error: documentsError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('user_id', userId);
+
+      if (documentsError) {
+        console.error('Supabase delete documents error:', documentsError);
+        throw new Error(friendlyDatabaseError(documentsError, 'Your documents could not be deleted.'));
+      }
+
       // Calendar events go first. Those linked to an application would cascade
       // with it, but standalone events (application_id NULL) would not, and
       // they are just as much the user's data.
@@ -973,5 +1327,7 @@ export const dataService = {
     localStorage.removeItem(STORAGE_KEYS.PROFILE + userId);
     localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS + userId);
     localStorage.removeItem(STORAGE_KEYS.CALENDAR + userId);
+    localStorage.removeItem(STORAGE_KEYS.DOCUMENTS + userId);
+    localStorage.removeItem(STORAGE_KEYS.APP_DOCUMENTS + userId);
   }
 };

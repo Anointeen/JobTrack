@@ -1,9 +1,29 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { ApplicationFormModal } from './ApplicationFormModal';
 import { makeApplication } from '../../test/factories';
 import type { ApplicationInput } from '../../types';
+
+/**
+ * The form offers the user's documents for attachment, so it consumes the
+ * documents context. Mocked here: these suites are about the form's own
+ * fields, and a real provider would pull in the data layer too.
+ */
+const docMocks = vi.hoisted(() => ({ documents: [] as any[], attached: [] as any[] }));
+
+vi.mock('../../context/DocumentsContext', () => ({
+  useDocuments: () => ({
+    documents: docMocks.documents,
+    links: [],
+    documentsFor: () => docMocks.attached,
+    defaultFor: () => undefined,
+    attachDocuments: vi.fn(),
+    detachDocument: vi.fn(),
+    getDownloadUrl: vi.fn()
+  })
+}));
 
 /**
  * Tag editor behaviour.
@@ -14,17 +34,20 @@ import type { ApplicationInput } from '../../types';
  */
 
 const setup = (initialData: Parameters<typeof makeApplication>[0] | null = null) => {
-  const onSave = vi.fn<(data: ApplicationInput) => Promise<void>>().mockResolvedValue(undefined);
+  const onSave = vi.fn<(data: ApplicationInput, documentIds: string[]) => Promise<void>>().mockResolvedValue(undefined);
   const onClose = vi.fn();
   const user = userEvent.setup();
 
   render(
-    <ApplicationFormModal
-      isOpen
-      onClose={onClose}
-      onSave={onSave}
-      initialData={initialData ? makeApplication(initialData) : null}
-    />
+    <MemoryRouter>
+
+      <ApplicationFormModal
+        isOpen
+        onClose={onClose}
+        onSave={onSave}
+        initialData={initialData ? makeApplication(initialData) : null}
+      />
+    </MemoryRouter>
   );
 
   return { onSave, onClose, user };

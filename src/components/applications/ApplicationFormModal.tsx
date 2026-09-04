@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from '../common/Modal';
 import {
   Application,
@@ -15,6 +15,9 @@ import {
 } from '../../types';
 import { normaliseTag, hasTag, todayLocalDate } from '../../lib/applicationFilters';
 import { formatSalary, hasLegacySalary, validateSalaryDraft } from '../../lib/salary';
+import { useDocuments } from '../../context/DocumentsContext';
+import { defaultAttachments } from '../../lib/documents';
+import { DocumentAttachSection } from '../documents/DocumentAttachSection';
 import { TagList } from './ApplicationMetadata';
 import {
   Building2, Briefcase, MapPin, Calendar, Link as LinkIcon, User, Mail,
@@ -24,7 +27,11 @@ import {
 interface ApplicationFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: ApplicationInput) => Promise<void>;
+  /**
+   * The chosen documents travel beside the application rather than inside
+   * it: they live in their own join table, not on the applications row.
+   */
+  onSave: (data: ApplicationInput, documentIds: string[]) => Promise<void>;
   initialData?: Application | null;
 }
 
@@ -58,6 +65,11 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
   const [tags, setTags] = useState<string[]>([]);
   const [tagDraft, setTagDraft] = useState('');
   const [tagNotice, setTagNotice] = useState('');
+
+  // Attachments. On a new application the user's defaults are offered
+  // pre-ticked; on an edit, whatever is already attached.
+  const { documents, documentsFor } = useDocuments();
+  const [documentIds, setDocumentIds] = useState<string[]>([]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -114,6 +126,30 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
     setTagDraft('');
     setTagNotice('');
     setErrors({});
+  }, [initialData, isOpen]);
+
+  /**
+   * Seeds the attachment tick-boxes when the modal opens: what is already
+   * attached when editing, the user's defaults when creating.
+   *
+   * The document sources are read through refs rather than listed as
+   * dependencies. They are arrays and a function from context, so a provider
+   * that rebuilt its value on each render would re-run this effect, set state,
+   * and re-render forever. Keying on the modal opening is also the honest
+   * trigger — this should reseed when the user opens the form, not whenever
+   * the library happens to reload underneath them.
+   */
+  const documentsForRef = useRef(documentsFor);
+  const documentsRef = useRef(documents);
+  documentsForRef.current = documentsFor;
+  documentsRef.current = documents;
+
+  useEffect(() => {
+    setDocumentIds(
+      initialData
+        ? documentsForRef.current(initialData.id).map(d => d.id)
+        : defaultAttachments(documentsRef.current).map(d => d.id)
+    );
   }, [initialData, isOpen]);
 
   /**
@@ -288,7 +324,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
         tags: finalTags,
         follow_up_date: followUpDate || null,
         follow_up_note: followUpNote.trim() || null
-      });
+      }, documentIds);
       onClose();
     } catch (err: any) {
       setErrors({ form: err.message || 'We couldn\'t save your application. Please check your internet connection and try again.' });
@@ -709,6 +745,21 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
             {tagNotice || 'Press Enter or comma to add. Tags are your own labels — duplicates are ignored.'}
           </span>
         </div>
+
+        {/* Documents. Present for both create and edit, because this one
+            modal is every create and edit surface in the app. */}
+        <DocumentAttachSection
+          documents={documents}
+          selectedIds={documentIds}
+          onToggle={id => setDocumentIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+          )}
+          defaultsNote={
+            !initialData && defaultAttachments(documents).length > 0
+              ? 'Your default resume and cover letter are ticked. Untick anything you do not want on this application.'
+              : null
+          }
+        />
 
         {/* Notes */}
         <div className="form-group" style={{ marginTop: '0.5rem' }}>

@@ -25,6 +25,7 @@ import { PriorityChip, FollowUpChip, TagList } from './ApplicationMetadata';
 import { formatSalary } from '../../lib/salary';
 import { isInterviewStage } from '../../lib/calendar';
 import { AddToCalendarPrompt } from '../calendar/AddToCalendarPrompt';
+import { ApplicationDocumentsSection } from '../documents/ApplicationDocumentsSection';
 import { useCalendarEventForm } from '../../context/CalendarEventFormContext';
 
 interface ApplicationDetailModalProps {
@@ -299,6 +300,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
           onDismiss={() => setCalendarPrompt(null)}
         />
       )}
+
+      {/* What was actually sent with this application, with a way to fix it. */}
+      <ApplicationDocumentsSection applicationId={application.id} />
 
       {/* Main Details Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>

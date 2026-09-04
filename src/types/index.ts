@@ -312,3 +312,84 @@ export type CalendarEventUpdate = Partial<Omit<CalendarEvent, 'id' | 'user_id' |
 
 /** The two ways the calendar screen can present the same events. */
 export type CalendarViewMode = 'month' | 'agenda';
+
+// ---------------------------------------------------------------------------
+// Documents (migration 0005)
+// ---------------------------------------------------------------------------
+
+/** Mirrors documents_doc_type_check in migration 0005. */
+export type DocumentType = 'resume' | 'cover_letter' | 'portfolio_link';
+
+export const DOCUMENT_TYPES: readonly {
+  value: DocumentType;
+  label: string;
+  /** Plural, for filter chips and empty states. */
+  plural: string;
+}[] = [
+  { value: 'resume', label: 'Resume', plural: 'Resumes' },
+  { value: 'cover_letter', label: 'Cover letter', plural: 'Cover letters' },
+  { value: 'portfolio_link', label: 'Portfolio link', plural: 'Portfolio links' }
+] as const;
+
+/** The types backed by an uploaded file rather than a URL. */
+export const FILE_DOCUMENT_TYPES: readonly DocumentType[] = ['resume', 'cover_letter'] as const;
+
+/** Accepted upload formats, mirrored into the file input's `accept`. */
+export const ACCEPTED_DOCUMENT_EXTENSIONS = ['.pdf', '.doc', '.docx'] as const;
+
+/**
+ * Upload ceiling, in bytes.
+ *
+ * Enforced client-side for a readable message. Supabase applies its own
+ * per-bucket limit server-side, which is the authority.
+ */
+export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+
+export interface CareerDocument {
+  id: string;
+  user_id: string;
+  name: string;
+  /** NOT NULL DEFAULT 'resume' in the database, so always present on a read. */
+  doc_type: DocumentType;
+  /**
+   * Path within the private `career-documents` bucket, always
+   * `{user_id}/{uuid}.{ext}`. Null for a portfolio link, which has no file.
+   * The database enforces that this and `external_url` match the doc_type.
+   */
+  storage_path?: string | null;
+  /** The link itself, for a portfolio link. Null for uploaded files. */
+  external_url?: string | null;
+  /** At most one per type per user — enforced by a partial unique index. */
+  is_default: boolean;
+  created_at: string;
+}
+
+/**
+ * Payload accepted when creating a document row.
+ *
+ * The file itself is uploaded separately and its resulting path passed here,
+ * so this stays a plain row description.
+ */
+export type CareerDocumentInput =
+  Omit<CareerDocument, 'id' | 'user_id' | 'created_at' | 'is_default'> & {
+    is_default?: boolean;
+  };
+
+/** Payload accepted when updating a document. Every field is optional. */
+export type CareerDocumentUpdate = Partial<
+  Omit<CareerDocument, 'id' | 'user_id' | 'created_at'>
+>;
+
+/**
+ * A document attached to an application.
+ *
+ * `user_id` is carried on the row so the composite foreign keys in migration
+ * 0005 can prove both sides belong to the same person.
+ */
+export interface ApplicationDocumentLink {
+  id: string;
+  user_id: string;
+  application_id: string;
+  document_id: string;
+  created_at: string;
+}

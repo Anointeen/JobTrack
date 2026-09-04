@@ -6,6 +6,7 @@ import { ApplicationsProvider } from '../../context/ApplicationsContext';
 import { ApplicationFormProvider } from '../../context/ApplicationFormContext';
 import { CalendarProvider } from '../../context/CalendarContext';
 import { CalendarEventFormProvider } from '../../context/CalendarEventFormContext';
+import { DocumentsProvider } from '../../context/DocumentsContext';
 import { OnboardingModal } from '../auth/OnboardingModal';
 import { AppLayout } from './AppLayout';
 import { FullScreenLoader } from '../common/FullScreenLoader';
@@ -50,11 +51,18 @@ export const ProtectedLayout: React.FC = () => {
               stage. With the nesting the other way round that call is
               impossible, which is why the edit form silently skipped the
               prompt. */}
-          <CalendarEventFormProvider>
-            <ApplicationFormProvider>
-              <AppLayout />
-            </ApplicationFormProvider>
-          </CalendarEventFormProvider>
+          {/* Above the application form, which consumes it: the form offers
+              the user's documents for attachment and pre-selects their
+              defaults. The event form is likewise above it, for the
+              interview-stage prompt. Both relationships point the same way —
+              a provider must sit above every component that calls its hook. */}
+          <DocumentsProvider>
+            <CalendarEventFormProvider>
+              <ApplicationFormProvider>
+                <AppLayout />
+              </ApplicationFormProvider>
+            </CalendarEventFormProvider>
+          </DocumentsProvider>
         </CalendarProvider>
       </ApplicationsProvider>
     </ToastProvider>

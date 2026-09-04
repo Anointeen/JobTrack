@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { makeApplication } from '../test/factories';
 import type { Application } from '../types';
@@ -15,11 +16,31 @@ import type { Application } from '../types';
  */
 
 const mocks = vi.hoisted(() => ({
+  documents: [] as any[],
+  attachedDocuments: [] as any[],
+  attachDocuments: vi.fn(),
+  detachDocument: vi.fn(),
+  getDownloadUrl: vi.fn(),
   applications: [] as Application[],
   createApplication: vi.fn(),
   updateApplication: vi.fn(),
   openCreateEvent: vi.fn(),
   addToast: vi.fn()
+}));
+
+// The application form offers the user's documents for attachment. Mocked at
+// the same boundary as the data layer: this suite is about the save flow, not
+// the document hub.
+vi.mock('./DocumentsContext', () => ({
+  useDocuments: () => ({
+    documents: mocks.documents,
+    links: [],
+    documentsFor: () => mocks.attachedDocuments,
+    defaultFor: () => undefined,
+    attachDocuments: mocks.attachDocuments,
+    detachDocument: mocks.detachDocument,
+    getDownloadUrl: mocks.getDownloadUrl
+  })
 }));
 
 vi.mock('./ApplicationsContext', () => ({
@@ -59,9 +80,12 @@ const Harness: React.FC<{ application: Application | null }> = ({ application })
 const setup = (application: Application | null) => {
   const user = userEvent.setup();
   render(
-    <ApplicationFormProvider>
-      <Harness application={application} />
-    </ApplicationFormProvider>
+    <MemoryRouter>
+
+      <ApplicationFormProvider>
+        <Harness application={application} />
+      </ApplicationFormProvider>
+    </MemoryRouter>
   );
   return { user };
 };
@@ -79,6 +103,8 @@ const editStatusTo = async (
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.applications = [];
+  mocks.documents = [];
+  mocks.attachedDocuments = [];
   mocks.createApplication.mockImplementation(async (d: any) =>
     makeApplication({ ...d, id: 'new-1' })
   );
@@ -210,5 +236,101 @@ describe('creating an application directly at an interview stage', () => {
 
     await waitFor(() => expect(mocks.createApplication).toHaveBeenCalled());
     expect(screen.queryByRole('button', { name: /add to calendar/i })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Attachments are a separate table, so saving an application is two writes.
+ * These pin the ordering and the reconciliation, which is where a join table
+ * usually goes wrong.
+ */
+describe('persisting document attachments', () => {
+  const openForm = async (user: ReturnType<typeof userEvent.setup>) =>
+    user.click(screen.getByRole('button', { name: /open form/i }));
+
+  it('attaches the ticked documents to a newly created application', async () => {
+    mocks.documents = [{ id: 'r1', name: 'Resume v2', doc_type: 'resume', is_default: false }];
+    const { user } = setup(null);
+
+    await openForm(user);
+    await user.type(await screen.findByLabelText(/company name/i), 'Globex');
+    await user.type(screen.getByLabelText(/job title/i), 'Staff Engineer');
+    await user.click(screen.getByLabelText(/resume v2/i));
+    await user.click(screen.getByRole('button', { name: /save application/i }));
+
+    await waitFor(() => expect(mocks.attachDocuments).toHaveBeenCalledWith('new-1', ['r1']));
+  });
+
+  it('saves the application before attaching anything to it', async () => {
+    // Links pointing at a row that failed to save would reference nothing.
+    mocks.documents = [{ id: 'r1', name: 'Resume v2', doc_type: 'resume', is_default: true }];
+    mocks.createApplication.mockRejectedValue(new Error('Database unavailable'));
+    const { user } = setup(null);
+
+    await openForm(user);
+    await user.type(await screen.findByLabelText(/company name/i), 'Globex');
+    await user.type(screen.getByLabelText(/job title/i), 'Staff Engineer');
+    await user.click(screen.getByRole('button', { name: /save application/i }));
+
+    await waitFor(() => expect(mocks.createApplication).toHaveBeenCalled());
+    expect(mocks.attachDocuments).not.toHaveBeenCalled();
+  });
+
+  it('attaches nothing when nothing is ticked', async () => {
+    const { user } = setup(null);
+
+    await openForm(user);
+    await user.type(await screen.findByLabelText(/company name/i), 'Globex');
+    await user.type(screen.getByLabelText(/job title/i), 'Staff Engineer');
+    await user.click(screen.getByRole('button', { name: /save application/i }));
+
+    await waitFor(() => expect(mocks.createApplication).toHaveBeenCalled());
+    expect(mocks.attachDocuments).not.toHaveBeenCalled();
+  });
+
+  it('adds only the newly ticked document when editing', async () => {
+    // Re-sending the whole list would trip the unique (application_id,
+    // document_id) constraint on what is already attached.
+    mocks.documents = [
+      { id: 'r1', name: 'Resume v2', doc_type: 'resume', is_default: false },
+      { id: 'c1', name: 'Cover letter', doc_type: 'cover_letter', is_default: false }
+    ];
+    mocks.attachedDocuments = [mocks.documents[0]];
+    const { user } = setup(makeApplication({ id: 'app-1' }));
+
+    await openForm(user);
+    await user.click(await screen.findByLabelText(/cover letter/i));
+    await user.click(screen.getByRole('button', { name: /update application/i }));
+
+    await waitFor(() => expect(mocks.attachDocuments).toHaveBeenCalledWith('app-1', ['c1']));
+    expect(mocks.detachDocument).not.toHaveBeenCalled();
+  });
+
+  it('detaches a document the user unticked', async () => {
+    mocks.documents = [{ id: 'r1', name: 'Resume v2', doc_type: 'resume', is_default: false }];
+    mocks.attachedDocuments = [mocks.documents[0]];
+    const { user } = setup(makeApplication({ id: 'app-1' }));
+
+    await openForm(user);
+    await user.click(await screen.findByLabelText(/resume v2/i));
+    await user.click(screen.getByRole('button', { name: /update application/i }));
+
+    await waitFor(() => expect(mocks.detachDocument).toHaveBeenCalledWith('app-1', 'r1'));
+    expect(mocks.attachDocuments).not.toHaveBeenCalled();
+  });
+
+  it('writes nothing when the attachments are unchanged', async () => {
+    mocks.documents = [{ id: 'r1', name: 'Resume v2', doc_type: 'resume', is_default: false }];
+    mocks.attachedDocuments = [mocks.documents[0]];
+    const { user } = setup(makeApplication({ id: 'app-1' }));
+
+    await openForm(user);
+    await user.clear(await screen.findByLabelText(/job title/i));
+    await user.type(screen.getByLabelText(/job title/i), 'Renamed Role');
+    await user.click(screen.getByRole('button', { name: /update application/i }));
+
+    await waitFor(() => expect(mocks.updateApplication).toHaveBeenCalled());
+    expect(mocks.attachDocuments).not.toHaveBeenCalled();
+    expect(mocks.detachDocument).not.toHaveBeenCalled();
   });
 });

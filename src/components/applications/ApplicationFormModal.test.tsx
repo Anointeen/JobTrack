@@ -1,10 +1,30 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { ApplicationFormModal } from './ApplicationFormModal';
-import { makeApplication, localDate } from '../../test/factories';
+import { makeApplication, makeDocument, localDate } from '../../test/factories';
 import type { ApplicationInput } from '../../types';
+
+/**
+ * The form offers the user's documents for attachment, so it consumes the
+ * documents context. Mocked here: these suites are about the form's own
+ * fields, and a real provider would pull in the data layer too.
+ */
+const docMocks = vi.hoisted(() => ({ documents: [] as any[], attached: [] as any[] }));
+
+vi.mock('../../context/DocumentsContext', () => ({
+  useDocuments: () => ({
+    documents: docMocks.documents,
+    links: [],
+    documentsFor: () => docMocks.attached,
+    defaultFor: () => undefined,
+    attachDocuments: vi.fn(),
+    detachDocument: vi.fn(),
+    getDownloadUrl: vi.fn()
+  })
+}));
 
 /**
  * Application form integration tests.
@@ -16,18 +36,21 @@ import type { ApplicationInput } from '../../types';
  */
 
 const setup = (props: Partial<React.ComponentProps<typeof ApplicationFormModal>> = {}) => {
-  const onSave = vi.fn<(data: ApplicationInput) => Promise<void>>().mockResolvedValue(undefined);
+  const onSave = vi.fn<(data: ApplicationInput, documentIds: string[]) => Promise<void>>().mockResolvedValue(undefined);
   const onClose = vi.fn();
   const user = userEvent.setup();
 
   render(
-    <ApplicationFormModal
-      isOpen
-      onClose={onClose}
-      onSave={onSave}
-      initialData={null}
-      {...props}
-    />
+    <MemoryRouter>
+
+      <ApplicationFormModal
+        isOpen
+        onClose={onClose}
+        onSave={onSave}
+        initialData={null}
+        {...props}
+      />
+    </MemoryRouter>
   );
 
   return { onSave, onClose, user };
@@ -57,6 +80,8 @@ const fillRequired = async (user: ReturnType<typeof userEvent.setup>) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  docMocks.documents = [];
+  docMocks.attached = [];
 });
 
 describe('opening the form', () => {
@@ -543,13 +568,15 @@ describe('cancel and close', () => {
 
 describe('submission outcomes', () => {
   it('surfaces a save failure to the user and keeps the form open', async () => {
-    const onSave = vi.fn<(data: ApplicationInput) => Promise<void>>()
+    const onSave = vi.fn<(data: ApplicationInput, documentIds: string[]) => Promise<void>>()
       .mockRejectedValue(new Error('Database unavailable'));
     const onClose = vi.fn();
     const user = userEvent.setup();
 
     render(
-      <ApplicationFormModal isOpen onClose={onClose} onSave={onSave} initialData={null} />
+      <MemoryRouter>
+        <ApplicationFormModal isOpen onClose={onClose} onSave={onSave} initialData={null} />
+      </MemoryRouter>
     );
 
     await user.type(screen.getByLabelText(/company name/i), 'Globex');
@@ -585,11 +612,15 @@ describe('submission outcomes', () => {
 
   it('disables the submit control while the save is in flight', async () => {
     let resolveSave: () => void = () => {};
-    const onSave = vi.fn<(data: ApplicationInput) => Promise<void>>()
+    const onSave = vi.fn<(data: ApplicationInput, documentIds: string[]) => Promise<void>>()
       .mockReturnValue(new Promise<void>(res => { resolveSave = res; }));
     const user = userEvent.setup();
 
-    render(<ApplicationFormModal isOpen onClose={vi.fn()} onSave={onSave} initialData={null} />);
+    render(
+      <MemoryRouter>
+        <ApplicationFormModal isOpen onClose={vi.fn()} onSave={onSave} initialData={null} />
+      </MemoryRouter>
+    );
 
     await user.type(screen.getByLabelText(/company name/i), 'Globex');
     await user.type(screen.getByLabelText(/job title/i), 'Staff Engineer');
@@ -614,5 +645,106 @@ describe('modal footer usability', () => {
     // independently of the other.
     expect(within(save.parentElement as HTMLElement).getByRole('button', { name: /^cancel$/i }))
       .toBe(cancel);
+  });
+});
+
+/**
+ * Attaching documents.
+ *
+ * This one modal is every create and edit surface in the app — the header and
+ * dashboard "Add Application" buttons, the applications list's empty-state
+ * buttons, the row pencil, the card Edit button and the detail view's Edit
+ * button all open it. Wiring the attach section here therefore covers all of
+ * them, which is what the audit for this feature established.
+ */
+describe('attaching documents', () => {
+  const library = [
+    makeDocument({ id: 'r1', name: 'Resume v2', doc_type: 'resume' }),
+    makeDocument({ id: 'c1', name: 'Cover letter', doc_type: 'cover_letter' })
+  ];
+
+  it('offers the library on a new application', () => {
+    docMocks.documents = library;
+    setup();
+    expect(screen.getByLabelText(/resume v2/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/cover letter/i)).toBeInTheDocument();
+  });
+
+  it('points at the hub when the library is empty', () => {
+    docMocks.documents = [];
+    setup();
+    expect(screen.getByRole('link', { name: /add a resume or cover letter/i }))
+      .toHaveAttribute('href', '/documents');
+  });
+
+  it('passes the ticked documents to onSave', async () => {
+    docMocks.documents = library;
+    const { onSave, user } = setup();
+
+    await fillRequired(user);
+    await user.click(screen.getByLabelText(/resume v2/i));
+    await user.click(screen.getByRole('button', { name: /save application/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][1]).toEqual(['r1']);
+  });
+
+  it('passes an empty list when nothing is ticked', async () => {
+    docMocks.documents = library;
+    const { onSave, user } = setup();
+
+    await fillRequired(user);
+    await user.click(screen.getByRole('button', { name: /save application/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][1]).toEqual([]);
+  });
+
+  it('pre-ticks the defaults on a new application, and says why', () => {
+    docMocks.documents = [
+      makeDocument({ id: 'r1', name: 'Resume v2', doc_type: 'resume', is_default: true }),
+      makeDocument({ id: 'c1', name: 'Cover letter', doc_type: 'cover_letter' })
+    ];
+    setup();
+
+    expect(screen.getByLabelText(/resume v2/i)).toBeChecked();
+    expect(screen.getByLabelText(/cover letter/i)).not.toBeChecked();
+    expect(screen.getByText(/your default resume and cover letter are ticked/i)).toBeInTheDocument();
+  });
+
+  it('lets the user untick a pre-ticked default before saving', async () => {
+    docMocks.documents = [
+      makeDocument({ id: 'r1', name: 'Resume v2', doc_type: 'resume', is_default: true })
+    ];
+    const { onSave, user } = setup();
+
+    await fillRequired(user);
+    await user.click(screen.getByLabelText(/resume v2/i));
+    await user.click(screen.getByRole('button', { name: /save application/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][1]).toEqual([]);
+  });
+
+  it('does not auto-attach defaults when editing an existing application', () => {
+    // The defaults are an offer for something new. An existing application
+    // already records what was actually sent with it.
+    docMocks.documents = [
+      makeDocument({ id: 'r1', name: 'Resume v2', doc_type: 'resume', is_default: true })
+    ];
+    docMocks.attached = [];
+    setup({ initialData: makeApplication({ id: 'app-1' }) });
+
+    expect(screen.getByLabelText(/resume v2/i)).not.toBeChecked();
+    expect(screen.queryByText(/are ticked/i)).not.toBeInTheDocument();
+  });
+
+  it('pre-ticks what is already attached when editing', () => {
+    docMocks.documents = library;
+    docMocks.attached = [library[1]];
+    setup({ initialData: makeApplication({ id: 'app-1' }) });
+
+    expect(screen.getByLabelText(/cover letter/i)).toBeChecked();
+    expect(screen.getByLabelText(/resume v2/i)).not.toBeChecked();
   });
 });

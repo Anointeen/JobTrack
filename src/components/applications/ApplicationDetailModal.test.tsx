@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { makeApplication, makeHistory, localDate } from '../../test/factories';
 
@@ -9,7 +10,13 @@ import { makeApplication, makeHistory, localDate } from '../../test/factories';
  */
 
 const mocks = vi.hoisted(() => ({
+  documents: [] as any[],
+  attachedDocuments: [] as any[],
+  attachDocuments: vi.fn(),
+  detachDocument: vi.fn(),
+  getDownloadUrl: vi.fn(),
   openCreateEvent: vi.fn(),
+  addToast: vi.fn(),
   data: {
     getStatusHistory: vi.fn(),
     updateApplication: vi.fn(),
@@ -18,6 +25,26 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../../lib/dataService', () => ({ dataService: mocks.data }));
+
+// The attached-documents section reports failures through the toast system.
+vi.mock('../../context/ToastContext', () => ({
+  useToast: () => ({ addToast: mocks.addToast })
+}));
+
+// The application form and detail view now offer the user's documents.
+// Mocked at the same boundary as the data layer: these suites are about the
+// application surfaces, not the document hub.
+vi.mock('../../context/DocumentsContext', () => ({
+  useDocuments: () => ({
+    documents: mocks.documents,
+    links: [],
+    documentsFor: () => mocks.attachedDocuments,
+    defaultFor: () => undefined,
+    attachDocuments: mocks.attachDocuments,
+    detachDocument: mocks.detachDocument,
+    getDownloadUrl: mocks.getDownloadUrl
+  })
+}));
 
 // The detail modal offers to add an interview stage to the calendar, so it
 // consumes the event-form context. Mocked at the same boundary as the data
@@ -36,20 +63,25 @@ const setup = (application = makeApplication({ id: 'a1' })) => {
   const user = userEvent.setup();
 
   render(
-    <ApplicationDetailModal
-      application={application}
-      isOpen
-      onClose={onClose}
-      onEdit={onEdit}
-      onDelete={onDelete}
-      onStatusChanged={onStatusChanged}
-    />
+    <MemoryRouter>
+
+      <ApplicationDetailModal
+        application={application}
+        isOpen
+        onClose={onClose}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onStatusChanged={onStatusChanged}
+      />
+    </MemoryRouter>
   );
 
   return { onClose, onEdit, onDelete, onStatusChanged, user };
 };
 
 beforeEach(() => {
+  mocks.documents = [];
+  mocks.attachedDocuments = [];
   mocks.data.getStatusHistory.mockResolvedValue([]);
   mocks.data.updateApplication.mockReset();
   mocks.data.recordStatusHistory.mockReset().mockResolvedValue(null);
@@ -309,5 +341,74 @@ describe('the Add to Calendar prompt', () => {
     await screen.findByRole('button', { name: /add to calendar/i });
     expect(screen.getByRole('status')).toHaveTextContent(/put it on your calendar/i);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Attached documents on the detail view — what was actually sent with this
+ * application, and a way to fix it.
+ */
+describe('attached documents', () => {
+  it('lists what is attached, with a way to open it', async () => {
+    mocks.attachedDocuments = [
+      { id: 'r1', name: 'Resume v2', doc_type: 'resume', storage_path: 'user-1/a.pdf' }
+    ];
+    mocks.getDownloadUrl.mockResolvedValue('https://signed.test/a.pdf');
+    window.open = vi.fn() as any;
+    const { user } = setup();
+
+    expect(screen.getByRole('heading', { name: /^documents$/i })).toBeInTheDocument();
+    expect(screen.getByText('Resume v2')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /view/i }));
+    await waitFor(() => expect(mocks.getDownloadUrl).toHaveBeenCalledWith('user-1/a.pdf'));
+  });
+
+  it('opens a portfolio link directly, with no signing step', () => {
+    mocks.attachedDocuments = [
+      {
+        id: 'p1', name: 'My portfolio', doc_type: 'portfolio_link',
+        storage_path: null, external_url: 'https://example.test/me'
+      }
+    ];
+    setup();
+
+    expect(screen.getByRole('link', { name: /open/i }))
+      .toHaveAttribute('href', 'https://example.test/me');
+  });
+
+  it('says so when nothing is attached', () => {
+    mocks.attachedDocuments = [];
+    mocks.documents = [{ id: 'r1', name: 'Resume v2', doc_type: 'resume' }];
+    setup();
+    expect(screen.getByText(/no documents attached to this application yet/i)).toBeInTheDocument();
+  });
+
+  it('points at the hub when the user has no documents at all', () => {
+    mocks.attachedDocuments = [];
+    mocks.documents = [];
+    setup();
+    expect(screen.getByRole('link', { name: /document hub/i })).toHaveAttribute('href', '/documents');
+  });
+
+  it('can detach a document', async () => {
+    mocks.attachedDocuments = [
+      { id: 'r1', name: 'Resume v2', doc_type: 'resume', storage_path: 'user-1/a.pdf' }
+    ];
+    const { user } = setup();
+
+    await user.click(screen.getByRole('button', { name: /detach resume v2/i }));
+    await waitFor(() => expect(mocks.detachDocument).toHaveBeenCalledWith('a1', 'r1'));
+  });
+
+  it('can attach one that is not yet on this application', async () => {
+    mocks.attachedDocuments = [];
+    mocks.documents = [{ id: 'r1', name: 'Resume v2', doc_type: 'resume' }];
+    const { user } = setup();
+
+    await user.click(screen.getByRole('button', { name: /attach/i }));
+    await user.click(await screen.findByRole('button', { name: /resume v2/i }));
+
+    await waitFor(() => expect(mocks.attachDocuments).toHaveBeenCalledWith('a1', ['r1']));
   });
 });
